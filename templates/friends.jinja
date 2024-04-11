@@ -1,0 +1,23 @@
+<!-- 
+-->
+{% extends 'base.jinja' %}
+
+{% block content %} 
+   
+
+<main>
+    <p> {{ username }}'s Friends: </p>
+    <ul id="list"></ul>
+    <script type="text/javascript">
+        let list = document.getElementById('list');
+        for (let i = 0; i < {{ friends }}.length; i++) {
+            let li = document.createElement('li');
+            li.textContent = {{ friends }}[i];
+            list.appendChild(li);
+        }
+    </script>
+
+</main>
+
+
+{% endblock %}
