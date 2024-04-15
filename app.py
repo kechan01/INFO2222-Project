@@ -89,7 +89,6 @@ def friends():
 
     # db.insert_test(request.args.get("username"))
     friends = db.get_friends(request.args.get("username"))
-    print(friends)
     return render_template("friends.jinja", username=request.args.get("username"), friends=friends)
 
 
