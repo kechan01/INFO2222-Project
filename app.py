@@ -4,11 +4,12 @@ this is where you'll find all of the get/post request handlers
 the socket event handlers are inside of socket_routes.py
 '''
 
-from flask import Flask, render_template, request, abort, url_for
+from flask import Flask, render_template, request, abort, url_for, jsonify
 from flask_socketio import SocketIO
 import db
 import secrets
 
+from db import send_friend_request
 # import logging
 
 # this turns off Flask Logging, uncomment this to turn off Logging
@@ -82,6 +83,22 @@ def home():
         abort(404)
     return render_template("home.jinja", username=request.args.get("username"))
 
+# Route to handle sending friend requests
+@app.route("/send_friend_request", methods=["POST"])
+def send_friend_request_route():
+    if not request.is_json:
+        abort(404)
+
+    sender = request.json.get("sender")
+    receiver = request.json.get("receiver")
+
+    success, message = send_friend_request(sender, receiver)
+    if success:
+        return jsonify({"success": True, "message": message}), 200
+    else:
+        return jsonify({"success": False, "message": message}), 400
+    
+
 @app.route("/friends")
 def friends():
     if request.args.get("username") is None:
@@ -90,6 +107,7 @@ def friends():
     # db.insert_test(request.args.get("username"))
     friends = db.get_friends(request.args.get("username"))
     return render_template("friends.jinja", username=request.args.get("username"), friends=friends)
+
 
 
 if __name__ == '__main__':

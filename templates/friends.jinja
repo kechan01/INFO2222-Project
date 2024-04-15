@@ -1,23 +1,50 @@
-<!-- 
--->
+<!-- friend.jinja -->
+
 {% extends 'base.jinja' %}
 
 {% block content %} 
-   
+    <main>
+        <h1>Welcome, {{ username }}!</h1>
+        <h2>Friend List</h2>
+        <ul id="list">
+            {% for friend in friends %}
+                <li>{{ friend }}</li>
+            {% endfor %}
+        </ul>
+        <h2>Add Friend</h2>
+        <form id="addFriendForm">
+            <label for="friendUsername">Friend's Username:</label>
+            <input type="text" id="friendUsername" name="friendUsername">
+            <button type="submit">Add Friend</button>
+        </form>
+    </main>
 
-<main>
-    <p> {{ username }}'s Friends: </p>
-    <ul id="list"></ul>
-    <script type="text/javascript">
-        let list = document.getElementById('list');
-        for (let i = 0; i < {{ friends }}.length; i++) {
-            let li = document.createElement('li');
-            li.textContent = {{ friends }}[i];
-            list.appendChild(li);
+    <script>
+        document.getElementById("addFriendForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            let friendUsername = document.getElementById("friendUsername").value;
+            addFriend(friendUsername);
+        });
+
+        async function addFriend(friendUsername) {
+            try {
+                let response = await fetch("/add_friend", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ friendUsername: friendUsername })
+                });
+                let data = await response.json();
+                if (response.ok) {
+                    alert(data.message);
+                    // Optionally, update friend list or UI after adding friend
+                } else {
+                    alert("Error: " + data.message);
+                }
+            } catch (error) {
+                console.error("Error:", error);
+            }
         }
     </script>
-
-</main>
-
-
 {% endblock %}

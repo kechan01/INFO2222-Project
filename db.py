@@ -58,3 +58,20 @@ def get_friends(username: str):
             friends.append(f.username)
         return friends
 
+
+# sends a friend request from one user to another
+def send_friend_request(sender: str, receiver: str):
+    with Session(engine) as session:
+        sender_user = session.get(User, sender)
+        receiver_user = session.get(User, receiver)
+        
+        if sender_user is None or receiver_user is None:
+            return False, "User not found."
+        
+        # Check if they are already friends
+        if receiver_user in sender_user.friends:
+            return False, "You are already friends with this user."
+
+        sender_user.friends.append(receiver_user)
+        session.commit()
+        return True, "Friend request sent successfully."
