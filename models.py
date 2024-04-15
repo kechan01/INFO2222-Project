@@ -42,7 +42,18 @@ class User(Base):
                 secondaryjoin=username==association_table.c.friend_id,
                 backref="friend_of"
             )
+    
+    # Field to store pending friend requests
+    requests = relationship("FriendRequest", backref="recipient", lazy="dynamic")
 
+# Model to represent friend requests
+class FriendRequest(Base):
+    __tablename__ = "friend_request"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    sender_id: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
+    recipient_id: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
+    accepted: Mapped[bool] = mapped_column(bool, default=False)
 
 # stateful counter used to generate the room id
 class Counter():
