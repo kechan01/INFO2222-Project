@@ -47,4 +47,33 @@
             }
         }
     </script>
+
+    <h2>Friend Requests</h2>
+    <ul id="friend-requests">
+        <!-- Display pending friend requests here -->
+        {% for request in friend_requests %}
+            <li>{{ request.sender }} sent you a friend request 
+                <button onclick="acceptFriendRequest('{{ request.sender }}')">Accept</button>
+                <button onclick="declineFriendRequest('{{ request.sender }}')">Decline</button>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <script type="text/javascript">
+        // Function to handle accepting friend requests
+        function acceptFriendRequest(sender) {
+            // Logic to accept the friend request
+            // You can implement this as per your friend request handling
+        }
+
+        // Function to handle declining friend requests
+        function declineFriendRequest(sender) {
+            // Logic to decline the friend request
+            // You can implement this as per your friend request handling
+        }
+    </script>
+
+</main>
+
+
 {% endblock %}

@@ -10,7 +10,7 @@ Prisma docs also looks so much better in comparison
 or use SQLite, if you're not into fancy ORMs (but be mindful of Injection attacks :) )
 '''
 
-from sqlalchemy import String, Table,  Column, Integer, ForeignKey
+from sqlalchemy import String, Table,  Column, Integer, ForeignKey, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from typing import Dict
 
@@ -42,7 +42,18 @@ class User(Base):
                 secondaryjoin=username==association_table.c.friend_id,
                 backref="friend_of"
             )
+    
+    # Field to store pending friend requests
+    requests = relationship("FriendRequest", primaryjoin="or_(User.username==FriendRequest.sender_id, User.username==FriendRequest.recipient_id)", backref="recipient")
 
+# Model to represent friend requests
+class FriendRequest(Base):
+    __tablename__ = "friend_request"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    sender_id: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
+    recipient_id: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
+    accepted: Mapped[bool] = mapped_column(Boolean, default=False)
 
 # stateful counter used to generate the room id
 class Counter():
