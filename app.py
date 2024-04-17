@@ -83,20 +83,18 @@ def home():
         abort(404)
     return render_template("home.jinja", username=request.args.get("username"))
 
-# Route to handle sending friend requests
+# 
 @app.route("/send_friend_request", methods=["POST"])
 def send_friend_request_route():
     if not request.is_json:
         abort(404)
-
+    
+    #get the username of the sender and the receiver of friendrequeset. 
     sender = request.json.get("sender")
     receiver = request.json.get("receiver")
 
     success, message = send_friend_request(sender, receiver)
-    if success:
-        return jsonify({"success": True, "message": message}), 200
-    else:
-        return jsonify({"success": False, "message": message}), 400
+    
     
 
 @app.route("/friends")
