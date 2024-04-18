@@ -4,7 +4,7 @@ this is where you'll find all of the get/post request handlers
 the socket event handlers are inside of socket_routes.py
 '''
 
-from flask import Flask, render_template, request, abort, url_for
+from flask import Flask, render_template, request, abort, url_for, session, redirect
 from flask_socketio import SocketIO
 import db
 import secrets
@@ -50,6 +50,8 @@ def login_user():
     if user.password != password:
         return "Error: Password does not match!"
 
+    session['username'] = username  # Store username in session
+
     return url_for('friends', username=request.json.get("username"))
 
 # handles a get request to the signup page
@@ -67,7 +69,7 @@ def signup_user():
 
     if db.get_user(username) is None:
         db.insert_user(username, password)
-        return url_for('friends', username=username)
+        return url_for('login')
     return "Error: User already exists!"
 
 # handler when a "404" error happens
@@ -76,21 +78,64 @@ def page_not_found(_):
     return render_template('404.jinja'), 404
 
 # home page, where the messaging app is
-@app.route("/home")
+@app.route("/chat")
 def home():
     if request.args.get("username") is None:
         abort(404)
-    return render_template("home.jinja", username=request.args.get("username"))
+    return render_template("chat.jinja", username=request.args.get("username"))
 
 @app.route("/friends")
 def friends():
-    if request.args.get("username") is None:
+    if 'username' not in session:
+        # Redirect to login if user is not authenticated
+        return redirect(url_for('login'))
+    else:
+        # Retrieve username from session
+        username = session['username']
+
+        # Get friends for the authenticated user
+        friends = db.get_friends(username)
+        requests = db.get_requests(username)
+        # # db.insert_test(request.args.get("username"))
+
+        return render_template("friends.jinja", username=username, friends=friends, requests=requests)
+
+
+@app.route("/friends/add", methods=["POST"])
+def add_friend():
+    if not request.is_json:
         abort(404)
+    recipient = request.json.get("recipient")
+    username = session.get('username')  # Retrieve username from session
 
-    # db.insert_test(request.args.get("username"))
-    friends = db.get_friends(request.args.get("username"))
-    return render_template("friends.jinja", username=request.args.get("username"), friends=friends)
+    if db.get_user(recipient) is None or recipient == username:
+        return "Error: recipient invalid"
+    else:
+        if db.send_request(username, recipient) == None:
+            return "Error: recipient invalid"
+    return url_for('friends')
 
+@app.route("/friends/accept", methods=["POST"])
+def accept_friend_request():
+    if not request.is_json:
+        abort(404)
+    sender = request.json.get("sender")
+    username = session.get('username')  # Retrieve username from session
+    
+    db.delete_requests(sender, username)
+    db.insert_friend(username, sender)
+    db.insert_friend(sender, username)
+    return url_for('friends')
+
+@app.route("/friends/decline", methods=["POST"])
+def decline_friend_request():
+    if not request.is_json:
+        abort(404)
+    sender = request.json.get("sender")
+    username = session.get('username')  # Retrieve username from session
+
+    db.delete_requests(sender, username)
+    return url_for('friends')
 
 if __name__ == '__main__':
     socketio.run(app)

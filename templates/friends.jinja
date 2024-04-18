@@ -6,39 +6,100 @@
    
 
 <main>
-    <p> {{ username }}'s Friends: </p>
+    <label for="fname"> Send friend request </label> 
+    <input id="recipient">
+    <button onclick="addFriend()">Add</button>
+    <script>
+        function isValidURL(string) {
+            if (string.length == 0) {
+                return false;
+            }
+            if (string[0] == "/") {
+                return true;
+            }
+            return false;
+        }
+
+        async function addFriend() {
+            let addFriendURL = "{{ url_for('add_friend') }}";
+
+            let res = await axios.post(addFriendURL, {
+                recipient: $("#recipient").val(),
+            });
+
+            // if the server sends in an error message, alert() the error message
+            if (!isValidURL(res.data)) {
+                alert(res.data);
+                return;
+            }
+
+            // redirects to the URL (ie. res.data),
+            // we use _self here since we all hate that moment
+            // when the browser opens a new tab
+            window.open(res.data, "_self")
+        }
+    </script>
+
+    <h1> {{ username }}'s Friends </h1>
     <ul id="list"></ul>
-    <script type="text/javascript">
+    <script>
         let list = document.getElementById('list');
         for (let i = 0; i < {{ friends }}.length; i++) {
             let li = document.createElement('li');
             li.textContent = {{ friends }}[i];
             list.appendChild(li);
         }
+
     </script>
 
-    <h2>Friend Requests</h2>
+    <h1>Friend Requests</h1>
     <ul id="friend-requests">
         <!-- Display pending friend requests here -->
-        {% for request in friend_requests %}
-            <li>{{ request.sender }} sent you a friend request 
-                <button onclick="acceptFriendRequest('{{ request.sender }}')">Accept</button>
-                <button onclick="declineFriendRequest('{{ request.sender }}')">Decline</button>
+        {% for request in requests %}
+            <li>{{ request }} sent you a friend request 
+                <button onclick="acceptFriendRequest('{{ request }}')">Accept</button>
+                <button onclick="declineFriendRequest('{{ request }}')">Decline</button>
             </li>
         {% endfor %}
     </ul>
 
     <script type="text/javascript">
         // Function to handle accepting friend requests
-        function acceptFriendRequest(sender) {
-            // Logic to accept the friend request
-            // You can implement this as per your friend request handling
+        async function acceptFriendRequest(sender) {
+            let acceptFriendURL = "{{ url_for('accept_friend_request') }}";
+
+            let res = await axios.post(acceptFriendURL, {
+                sender: sender,
+            });
+
+            // If the server sends in an error message, alert() the error message
+            if (!isValidURL(res.data)) {
+                alert("request");
+                return;
+            }
+
+            // Reload the page after accepting the request
+            location.reload();
+            alert("Friend request from " + sender + " accepted successfully!");
         }
 
         // Function to handle declining friend requests
-        function declineFriendRequest(sender) {
-            // Logic to decline the friend request
-            // You can implement this as per your friend request handling
+        async function declineFriendRequest(sender) {
+            let declineFriendURL = "{{ url_for('decline_friend_request') }}";
+
+            let res = await axios.post(declineFriendURL, {
+                sender: sender,
+            });
+
+            // If the server sends in an error message, alert() the error message
+            if (!isValidURL(res.data)) {
+                alert(res.data);
+                return;
+            }
+
+            // Reload the page after declining the request
+            location.reload();
+            alert("Friend request from " + sender + " declined successfully!");
         }
     </script>
 

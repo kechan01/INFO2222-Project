@@ -17,6 +17,7 @@ from models import Room
 import db
 
 room = Room()
+online_users = {}
 
 # when the client connects to a socket
 # this event is emitted when the io() function is called in JS
@@ -28,6 +29,7 @@ def connect():
         return
     # socket automatically leaves a room on client disconnect
     # so on client connect, the room needs to be rejoined
+    online_users[username] = request.sid
     join_room(int(room_id))
     emit("incoming", (f"{username} has connected", "green"), to=int(room_id))
 
@@ -39,7 +41,13 @@ def disconnect():
     room_id = request.cookies.get("room_id")
     if room_id is None or username is None:
         return
+    if username in online_users:
+        del online_users[username]  # Remove the user from the online list
+
     emit("incoming", (f"{username} has disconnected", "red"), to=int(room_id))
+
+def is_user_online(username):
+    return username in online_users
 
 # send message event handler
 @socketio.on("send")
@@ -50,7 +58,9 @@ def send(username, message, room_id):
 # sent when the user joins a room
 @socketio.on("join")
 def join(sender_name, receiver_name):
-    
+    if not is_user_online(sender_name) or not is_user_online(receiver_name):
+        return "One or both users are offline."
+
     receiver = db.get_user(receiver_name)
     if receiver is None:
         return "Unknown receiver!"
