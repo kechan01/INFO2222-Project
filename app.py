@@ -4,22 +4,14 @@ this is where you'll find all of the get/post request handlers
 the socket event handlers are inside of socket_routes.py
 '''
 
-<<<<<<< HEAD
-from flask import Flask, render_template, request, abort, url_for, jsonify
-=======
 from flask import Flask, render_template, request, abort, url_for, session, redirect
->>>>>>> kelly
 from flask_socketio import SocketIO
 import db
 import secrets
 
-<<<<<<< HEAD
-from db import send_friend_request
-=======
 
->>>>>>> kelly
 # import logging
-
+ 
 # this turns off Flask Logging, uncomment this to turn off Logging
 # log = logging.getLogger('werkzeug')
 # log.setLevel(logging.ERROR)
@@ -104,20 +96,6 @@ def chat():
         # Here you can perform any additional logic you need, such as checking if the friend exists, etc.
         return render_template("chat.jinja", username=username, friends=friends)
 
-# 
-@app.route("/send_friend_request", methods=["POST"])
-def send_friend_request_route():
-    if not request.is_json:
-        abort(404)
-    
-    #get the username of the sender and the receiver of friendrequeset. 
-    sender = request.json.get("sender")
-    receiver = request.json.get("receiver")
-
-    success, message = send_friend_request(sender, receiver)
-    
-    
-
 @app.route("/friends")
 def friends():
     if 'username' not in session:
@@ -169,7 +147,6 @@ def decline_friend_request():
 
     db.delete_requests(sender, username)
     return url_for('friends')
-
 
 if __name__ == '__main__':
     socketio.run(app)
