@@ -119,6 +119,11 @@
     function join_room() {
        
         let receiver = $("#receiver").val();
+        
+        if (!{{ friends }}.includes(receiver)) {
+            alert("Invalid receiver");
+            return;
+        }
 
         // pass in the receiver of our message to the server
         // as well as the current user's username
