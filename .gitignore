@@ -1,2 +1,4 @@
 database
+certs/myCA.key
+certs/localhost.key
 __pycache__

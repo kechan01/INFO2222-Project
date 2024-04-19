@@ -8,19 +8,28 @@ from flask import Flask, render_template, request, abort, url_for, session, redi
 from flask_socketio import SocketIO
 import db
 import secrets
+import ssl
 
-
-# import logging
+import logging
  
 # this turns off Flask Logging, uncomment this to turn off Logging
-# log = logging.getLogger('werkzeug')
-# log.setLevel(logging.ERROR)
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
 
 app = Flask(__name__)
 
 # secret key used to sign the session cookie
 app.config['SECRET_KEY'] = secrets.token_hex()
 socketio = SocketIO(app)
+
+
+# SSL certificate and private key paths
+certfile = './certs/localhost.crt'
+keyfile = './certs/localhost.key'
+
+# Create an SSL context with the certificate and private key
+ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+ssl_context.load_cert_chain(certfile, keyfile)
 
 # don't remove this!!
 import socket_routes
@@ -149,4 +158,4 @@ def decline_friend_request():
     return url_for('friends')
 
 if __name__ == '__main__':
-    socketio.run(app)
+    socketio.run(app, host='127.0.0.1', port=5000, ssl_context=ssl_context)
