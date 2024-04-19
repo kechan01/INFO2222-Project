@@ -13,6 +13,8 @@ or use SQLite, if you're not into fancy ORMs (but be mindful of Injection attack
 from sqlalchemy import String, Table,  Column, Integer, ForeignKey, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from typing import Dict
+import hashlib
+import secrets
 
 
 # data models
@@ -35,7 +37,8 @@ class User(Base):
     # in other words we've mapped the username Python object property to an SQL column of type String 
     username: Mapped[str] = mapped_column(String, primary_key=True)
     password: Mapped[str] = mapped_column(String)
-    
+    salt: Mapped[str] = mapped_column(String)
+
     friends = relationship("User",
                 secondary=association_table,
                 primaryjoin=username==association_table.c.user_id,
@@ -45,6 +48,19 @@ class User(Base):
     
     # Field to store pending friend requests
     requests = relationship("FriendRequest", primaryjoin="or_(User.username==FriendRequest.sender_id, User.username==FriendRequest.recipient_id)", backref="recipient")
+    
+    def set_password(self, password: str):
+        # Generate a salt
+        self.salt = secrets.token_hex(16)
+        # Hash the password with the salt
+        self.password = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), self.salt.encode('utf-8'), 600000)
+
+    def check_password(self, password: str) -> bool:
+        # Hash the provided password using the stored salt
+        hashed_password = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), self.salt.encode('utf-8'), 600000)
+        # Compare the hashed passwords
+        return hashed_password == self.password
+
 
 # Model to represent friend requests
 class FriendRequest(Base):
@@ -82,6 +98,7 @@ class Room():
     def join_room(self,  sender: str, room_id: int) -> int:
         self.dict[sender] = room_id
 
+
     def leave_room(self, user):
         if user not in self.dict.keys():
             return
@@ -92,4 +109,14 @@ class Room():
         if user not in self.dict.keys():
             return None
         return self.dict[user]
+    
+        # gets the room id from a user
+    def get_users(self, room_id: int):
+        users = []
+        for user, id in self.dict.items():
+            if id == str(room_id):
+                users.append(user)
+
+        return users
+
     

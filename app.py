@@ -9,6 +9,7 @@ from flask_socketio import SocketIO
 import db
 import secrets
 
+
 # import logging
 
 # this turns off Flask Logging, uncomment this to turn off Logging
@@ -47,7 +48,7 @@ def login_user():
     if user is None:
         return "Error: User does not exist!"
 
-    if user.password != password:
+    if not user.check_password(password):
         return "Error: Password does not match!"
 
     session['username'] = username  # Store username in session
@@ -79,10 +80,21 @@ def page_not_found(_):
 
 # home page, where the messaging app is
 @app.route("/chat")
-def home():
+def chat():
     if request.args.get("username") is None:
         abort(404)
-    return render_template("chat.jinja", username=request.args.get("username"))
+    
+    if 'username' not in session:
+        # Redirect to login if user is not authenticated
+        return redirect(url_for('login'))
+    else:
+        # Retrieve username from session
+        username = session['username']
+
+        # Get the friend's username from the query parameter
+        friends = db.get_friends(username)
+        # Here you can perform any additional logic you need, such as checking if the friend exists, etc.
+        return render_template("chat.jinja", username=username, friends=friends)
 
 @app.route("/friends")
 def friends():
@@ -96,7 +108,6 @@ def friends():
         # Get friends for the authenticated user
         friends = db.get_friends(username)
         requests = db.get_requests(username)
-        # # db.insert_test(request.args.get("username"))
 
         return render_template("friends.jinja", username=username, friends=friends, requests=requests)
 

@@ -41,12 +41,22 @@
     </script>
 
     <h1> {{ username }}'s Friends </h1>
+    <button onclick="chat()">Chat</button>
+    <script>
+        function chat() {
+            // Redirect to the chat route with the friend's username as a query parameter
+            window.location.href = "chat?username={{ username }}";
+        };
+    </script>
+
     <ul id="list"></ul>
     <script>
         let list = document.getElementById('list');
+        // Append the button to the list item
         for (let i = 0; i < {{ friends }}.length; i++) {
             let li = document.createElement('li');
-            li.textContent = {{ friends }}[i];
+            li.textContent = {{ friends }}[i];  
+
             list.appendChild(li);
         }
 
