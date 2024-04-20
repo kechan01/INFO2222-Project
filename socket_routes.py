@@ -33,9 +33,8 @@ def connect():
 
     # if the user is already inside of a room 
     if room_id is not None:
-        room.join_room(username, room_id)
         join_room(int(room_id))
-        user = room.get_users(room_id)
+        user = room.get_users(int(room_id))
         emit("incoming", (f"{username} has connected", "green"), to=int(room_id))
         if len(user) == 1:
             emit("incoming", ("Receiver is not online. Messages will not be received!", "green"))
@@ -57,8 +56,6 @@ def disconnect():
     
     emit("incoming", (f"{username} has left the room.", "red"), to=int(room_id))
     leave_room(room_id)
-    room.leave_room(username)
-
 
 def is_user_online(username):
     return username in online_users
@@ -67,8 +64,16 @@ def is_user_online(username):
 @socketio.on("send")
 def send(username, message, room_id):
     emit("incoming", (f"{username}: {message}"), to=room_id)
-    user = room.get_users(room_id)
-    if len(user) == 1:
+    user = room.get_users(int(room_id))
+    receiver = None
+    for u in user:
+        if u != username:
+            receiver = u
+
+    if (len(user) == 2) :
+        if not receiver in online_users:
+            emit("incoming", (f"{receiver} is not online. Messages will not be received!", "green"))
+    else:
         emit("incoming", ("Receiver is not online. Messages will not be received!", "green"))
 
     
@@ -96,7 +101,6 @@ def join(sender_name, receiver_name):
         emit("incoming", (f"{sender_name} has joined the room.", "green"), to=room_id, include_self=False)
         # emit only to the sender
         emit("incoming", (f"{sender_name} has joined the room. Now talking to {receiver_name}.", "green"))
-        print("INNNN")
         return int(room_id)
 
     # if the user isn't inside of any room, 
@@ -115,6 +119,9 @@ def join(sender_name, receiver_name):
 # leave room event handler
 @socketio.on("leave")
 def leave(username, room_id):
+    if username in online_users:
+        del online_users[username]  # Remove the user from the online list
+
     emit("incoming", (f"{username} has left the room.", "red"), to=room_id)
     leave_room(room_id)
     room.leave_room(username)

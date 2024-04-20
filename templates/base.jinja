@@ -16,7 +16,29 @@ Yeah I know it's pretty ugly...
         <script src="/static/js/libs/jquery.min.js"></script>
         <script src="/static/js/libs/js.cookie.min.js"></script>
     </head>
+    
     <body>
+        <script>
+        // Function to send heartbeat request to server
+        function sendHeartbeat() {
+            // Send a request to a specific endpoint on the server
+            fetch('/heartbeat')
+                .then(response => {
+                    // Check if the response indicates server is running
+                    if (!response.ok) {
+                        // Server is not running, trigger page refresh
+                        window.location.reload();
+                    }
+                })
+                .catch(error => {
+                    // Error occurred, assume server is not running
+                    window.location.reload();
+                });
+        }
+
+        // Send heartbeat every 5 seconds
+        setInterval(sendHeartbeat, 1000);
+    </script>
         <!-- The content from any other page goes here -->
         {% block content %} {% endblock %}
     </body>

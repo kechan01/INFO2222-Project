@@ -11,6 +11,9 @@
     <p>Password</p>
     <input id="password"  type="password"/>
     <button onclick="login()">Login</button>
+    
+    <!-- CryptoJS library for hashing password -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
     <script>
 
@@ -26,6 +29,10 @@
             return false;
         }
 
+        function hashPassword(password) {
+            return CryptoJS.SHA256(password).toString();
+        }
+
         // login function to well login...
         async function login() {
             // this fancy syntax is part of the Jinja syntax
@@ -37,11 +44,15 @@
             // gives us -> "http://blabla/login/user"
             let loginURL = "{{ url_for('login_user') }}";
 
+            let username = $("#username").val();
+            let password = $("#password").val();
+            let hashedPassword = hashPassword(password); // Hash the password
+
             // axios post is a fancy way of posting a request to the server,
             // we pass in the username and password here
             let res = await axios.post(loginURL, {
-                username: $("#username").val(),
-                password: $("#password").val()
+                username: username,
+                password: hashedPassword
             });
 
             // if the server sends in an error message, alert() the error message

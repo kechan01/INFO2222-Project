@@ -28,7 +28,7 @@ certfile = './certs/localhost.crt'
 keyfile = './certs/localhost.key'
 
 # Create an SSL context with the certificate and private key
-ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 ssl_context.load_cert_chain(certfile, keyfile)
 
 # don't remove this!!
@@ -52,7 +52,6 @@ def login_user():
 
     username = request.json.get("username")
     password = request.json.get("password")
-
     user =  db.get_user(username)
     if user is None:
         return "Error: User does not exist!"
@@ -156,6 +155,11 @@ def decline_friend_request():
 
     db.delete_requests(sender, username)
     return url_for('friends')
+
+@app.route('/heartbeat')
+def heartbeat():
+    # Endpoint to indicate server is running
+    return 'OK', 200
 
 if __name__ == '__main__':
     socketio.run(app, host='127.0.0.1', port=5000, ssl_context=ssl_context)
