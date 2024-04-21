@@ -112,7 +112,6 @@ class Room():
     
         # gets the room id from a user
     def get_users(self, room_id: int):
-        print(self.dict)
         users = []
         for user, id in self.dict.items():
             if int(id) == room_id:

@@ -60,8 +60,28 @@
 </main>
 
 <script src="/static/js/libs/socket.io.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.js"></script>
 <script>
     let room_id = 0;
+
+        // Function to generate Diffie-Hellman keys
+    function generateDHKeys() {
+        // Generate a random private key (simulating private key generation)
+        const privateKey = CryptoJS.lib.WordArray.random(16).toString();
+
+        // Generate the corresponding public key using Diffie-Hellman algorithm
+        const publicKey = CryptoJS.SHA256(privateKey).toString();
+
+        return { publicKey, privateKey };
+    }
+
+        // Function to calculate MAC for a message
+    function calculateMAC(message, key) {
+        // Calculate HMAC-SHA256 using the shared key
+        const hmac = CryptoJS.HmacSHA256(message, key);
+
+        return hmac.toString();
+    }
 
     // when the user presses the "Enter" key inside of the "message box", 
     // the message is sent to the server
@@ -92,6 +112,13 @@
         $("#chat_box").hide();
         $("#input_box").show();
         room_id = parseInt(Cookies.get("room_id"));
+        
+        // Generate Diffie-Hellman keys
+        const { publicKey, privateKey } = generateDHKeys();
+
+        // Send public key to the server
+        socket.emit("dh_key_exchange", publicKey, room_id);
+
     })
     
     // Here's the Socket IO part of the code
@@ -107,12 +134,24 @@
     socket.on("incoming", (msg, color="black") => {
         add_message(msg, color);
     })
-    
+
+    // Function to handle DH key exchange response
+    socket.on("dh_key_exchange_response", (publicKey, roomId) => {
+        // Generate shared key using received public key and client's private key
+        const sharedKey = CryptoJS.SHA256(privateKey + publicKey).toString();
+
+        // Store shared key somewhere secure for future use (e.g., sessionStorage)
+        sessionStorage.setItem("sharedKey", sharedKey);
+    });
+
+
     // we'll send the message to the server by emitting a "send" event
     function send() {
         let message = $("#message").val();
+        let sharedKey = sessionStorage.getItem("sharedKey");
+        let mac = calculateMAC(message, sharedKey); // Calculate MAC for the message
         $("#message").val("");
-        socket.emit("send", username, message, room_id);  
+        socket.emit("send", username, message, mac, room_id);  
     } 
 
     // we emit a join room event to the server to join a room
