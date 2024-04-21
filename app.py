@@ -9,8 +9,9 @@ from flask_socketio import SocketIO
 import db
 import secrets
 import ssl
-
 import logging
+from models import EncryptedMessage
+
  
 # this turns off Flask Logging, uncomment this to turn off Logging
 log = logging.getLogger('werkzeug')
@@ -19,16 +20,21 @@ log.setLevel(logging.ERROR)
 app = Flask(__name__)
 
 # secret key used to sign the session cookie
+#creating a secret code for our Flask web application. the function at ateh right hand side is called to generate the secret code 
 app.config['SECRET_KEY'] = secrets.token_hex()
+#It's like a chatroom where the server can talk to your web app instantly, without needing to refresh the page
 socketio = SocketIO(app)
 
 
 # SSL certificate and private key paths
-certfile = './certs/localhost.crt'
-keyfile = './certs/localhost.key'
+certfile = '/Users/tannudahiya/Desktop/INFO2222/INFO2222-Project/certs/localhost.crt'
+keyfile = '/Users/tannudahiya/Desktop/INFO2222/INFO2222-Project/certs/localhost.key'
+
 
 # Create an SSL context with the certificate and private key
+# we're basically setting up the rules and protocols for our SSL secure tunnel to work.
 ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+#giving our server its ID card and secret key so that it can prove its identity to clients
 ssl_context.load_cert_chain(certfile, keyfile)
 
 # don't remove this!!
@@ -78,6 +84,8 @@ def signup_user():
 
     if db.get_user(username) is None:
         db.insert_user(username, password)
+        #Create public key for the user
+        public_key = EncryptedMessage.create_public_key(username)
         return url_for('login')
     return "Error: User already exists!"
 
@@ -163,3 +171,8 @@ def heartbeat():
 
 if __name__ == '__main__':
     socketio.run(app, host='127.0.0.1', port=5000, ssl_context=ssl_context)
+    app.run(ss1_context=('./certs/localhost.crt'
+'./certs/localhost.key'))
+
+
+  

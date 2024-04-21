@@ -16,7 +16,11 @@ from typing import Dict
 import hashlib
 import secrets
 
+from sqlalchemy import LargeBinary
 
+#imports for encryption 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
 # data models
 class Base(DeclarativeBase):
     pass
@@ -120,4 +124,31 @@ class Room():
 
         return users
 
+
+class EncryptedMessage(Base):
+    __tablename__ = "encrypted_message"
+
+    room_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    sender_id: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
+    sender_public_key: Mapped[bytes] = mapped_column(LargeBinary)
+    recipient_public_key: Mapped[bytes] = mapped_column(LargeBinary)
+    encrypted_message: Mapped[bytes] = mapped_column(LargeBinary)
+
+    def __repr__(self):
+        return f"<EncryptedMessage(room_id='{self.room_id}', sender_id='{self.sender_id}', recipient_id='{self.recipient_id}', encrypted_message='{self.encrypted_message}')>"
     
+    def create_public_key(cls, user):
+        # Generate a new key pair for the user
+        private_key = dh.generate_private_key()
+        public_key = private_key.public_key()
+
+        # Serialize the public key to PEM format
+        public_key_pem = public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+
+        # Save the public key to the user's database entry
+        user.public_key = public_key_pem
+
+        return public_key_pem
