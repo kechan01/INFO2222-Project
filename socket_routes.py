@@ -15,7 +15,10 @@ except ImportError:
 from models import Room
 
 import db
-import hashlib
+import hashlib 
+from cryptography.hazmat.primitives.asymmetric import dh
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 
 room = Room()
 online_users = {}
@@ -37,11 +40,11 @@ def connect():
     # if the user is already inside of a room 
     if room_id is not None:
         join_room(int(room_id))
+        room.join_room(username, room_id)
         user = room.get_users(int(room_id))
         emit("incoming", (f"{username} has connected", "green"), to=int(room_id))
         if len(user) == 1:
             emit("incoming", ("Receiver is not online. Messages will not be received!", "green"))
-
         return room_id
 
 
@@ -59,6 +62,7 @@ def disconnect():
     
     emit("incoming", (f"{username} has left the room.", "red"), to=int(room_id))
     leave_room(room_id)
+    room.leave_room(room_id)
 
 def is_user_online(username):
     return username in online_users
@@ -66,39 +70,18 @@ def is_user_online(username):
 # send message event handler
 @socketio.on("send")
 def send(username, message, room_id):
-    # Retrieve the private key from the request
-    private_key = request.cookies.get("privateKey")
-
-    shared_key = shared_keys.get(room_id)
-
-    # Calculate the MAC for the message using the shared key
-    calculated_mac = hashlib.sha256((message + shared_key).encode()).hexdigest()
-
-    # Retrieve the MAC sent by the client
-    client_mac = request.cookies.get("mac")
-
-    # Verify MAC
-    if calculated_mac == client_mac:
-        # MAC is valid, proceed to send the message
-        emit("incoming", (f"{username}: {message}"), to=room_id)
-    else:
-        # MAC is not valid, reject the message
-        emit("incoming", ("MAC verification failed. Message rejected.", "red"), to=request.sid)
-
-
+    emit("incoming", (f"{username}: {message}"), to=room_id)
     user = room.get_users(int(room_id))
     receiver = None
     for u in user:
         if u != username:
             receiver = u
-
     if (len(user) == 2) :
         if not receiver in online_users:
             emit("incoming", (f"{receiver} is not online. Messages will not be received!", "green"))
     else:
         emit("incoming", ("Receiver is not online. Messages will not be received!", "green"))
 
-    
 # join room event handler
 # sent when the user joins a room
 @socketio.on("join")
@@ -113,12 +96,11 @@ def join(sender_name, receiver_name):
 
     room_id = room.get_room_id(receiver_name)
     online_users[sender_name] = request.sid
-
+    
     # if the user is already inside of a room 
     if room_id is not None:
         room.join_room(sender_name, room_id)
         join_room(room_id)
-
         # emit to everyone in the room except the sender
         emit("incoming", (f"{sender_name} has joined the room.", "green"), to=room_id, include_self=False)
         # emit only to the sender
@@ -157,21 +139,17 @@ def find_receiver(username, room_id):
 
     return
 
+@socketio.on("ask_receiver_public_key")
+def ask_receiver_public_key(room_id):
+    # emit to everyone in the room except the sender
+    emit("ask_receiver_public_key", (), to=room_id, include_self=False)
 
-# Function to handle Diffie-Hellman key exchange
-@socketio.on("dh_key_exchange")
-def dh_key_exchange(public_key, room_id):
-    # Retrieve the client's public key
-    client_public_key = public_key
+@socketio.on("send_receiver_public_key")
+def send_receiver_public_key(public_key, room_id):
+    # emit to everyone in the room except the sender
+    emit("send_receiver_public_key", public_key, to=room_id, include_self=False)
 
-    # Retrieve the client's username
-    username = request.cookies.get("username")
-
-    # Retrieve the client's private key
-    client_private_key = db.get_private_key(username)
-
-    # Calculate the shared key using both public and private keys
-    shared_key = hashlib.sha256((client_private_key + client_public_key).encode()).hexdigest()
-
-    # Store the shared key in the dictionary with room ID as the key
-    shared_keys[room_id] = shared_key
+@socketio.on("send_receiver_secret_key")
+def send_receiver_public_key(secretKey, room_id):
+    # emit to everyone in the room except the sender
+    emit("send_receiver_secret_key", secretKey, to=room_id, include_self=False)
