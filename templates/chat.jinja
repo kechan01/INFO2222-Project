@@ -117,23 +117,25 @@
     // receiver being asked by sender to send the public key
     socket.on("ask_receiver_public_key", () => {
         // sending the public key
-        socket.emit("send_receiver_public_key", sessionStorage.getItem("publicKey"), room_id)
+        socket.emit("send_receiver_public_key", sessionStorage.getItem("publicKey"), room_id);
         // console.log("receiver sends " + receiver_public_key);
     });
 
     // sender receives the public key from the receiver and encrypts the secretKey and send to receiver
     socket.on("send_receiver_public_key", (receiver_public_key) => {
-        // console.log("sender receives " + receiver_public_key);
+        console.log("sender receives and send " + sessionStorage.getItem("secretKey"));
         //encrypts the receiver public key 
-        const encryptedSecretKey = encryptAES(receiver_public_key, key);
-        socket.emit("send_receiver_secret_key", encryptedSecretKey, room_id)
+        const encryptedSecretKey = encryptAES(sessionStorage.getItem("secretKey"), receiver_public_key);
+        socket.emit("send_receiver_secret_key", encryptedSecretKey, room_id);
     });
 
     // receiver receives the encrypted secret key and decrypts it
-    socket.on("send_receiver_public_key", (encrypted_secret_key) => {
-        // console.log("receiver receives secret key" + encrypted_secret_key);
+    socket.on("send_receiver_secret_key", (encrypted_secret_key) => {
         // decrypts the secret key 
-        const encryptedSecretKey = decryptAES(encrypted_secret_key, sessionStorage.getItem("privateKey"));
+        const decryptedSecretKey = decryptAES(encrypted_secret_key, sessionStorage.getItem("privateKey"));
+        sessionStorage.setItem("secretKey", decryptedSecretKey);
+        console.log("receiver receives secret key" + decryptedSecretKey);
+
     });
 
     // Function to encrypt data using AES
@@ -211,8 +213,8 @@
 
     // we'll send the message to the server by emitting a "send" event
     function send() {
-        // ask the server for the receiver's public key
-        if (sessionStorage.getItem("sharedKey") != undefined) {
+        // ask the server for the receiver's public key if shared key not established
+        if (sessionStorage.getItem("sharedKey") == null) {
             socket.emit("ask_receiver_public_key", room_id);
         }
 
@@ -225,6 +227,9 @@
 
     // we emit a join room event to the server to join a room
     function join_room() {        
+        sessionStorage.removeItem("sharedKey");
+        sessionStorage.removeItem("secretKey");
+
         let receiver = $("#receiver").val();
         if (!{{ friends }}.includes(receiver)) {
             alert("Invalid receiver");
@@ -250,7 +255,7 @@
             $("#input_box").show();
             let secretKey = generateSecretKey();
             sessionStorage.setItem("secretKey", secretKey);
-
+            
         });
      
     }
@@ -260,6 +265,8 @@
     // emits a "leave" event, telling the server that we want to leave the room
     function leave() {
         Cookies.remove("room_id");
+        sessionStorage.removeItem("sharedKey");
+        sessionStorage.removeItem("secretKey");
         socket.emit("leave", username, room_id);
         $("#input_box").hide();
         $("#chat_box").show();
