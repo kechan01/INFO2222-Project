@@ -226,26 +226,33 @@
         socket.emit("send", username, message, room_id);  
     } 
 
-    //functions related to teh encryption of the messages 
-    //need a general parameter 
-    const g = 456; 
-    //need a randomly generatede private key 
-    const sender_privateKey = CryptoJS.lib.WordArray.random(16).toString();
-    console.log("sender_privatekey" + sender_privateKey);
+    //functions related to the encryption of the messages 
+    //common parameter 
+    const common_param = generateSecretKey(); 
     
-    //need to combine them to form public key 
+    //function to generate random private keys
+    const private_key = generateSecretKey(): 
+
+    const sender_publickey = CryptoJS.DH(common_param, private_key);
+    //convert the shared secret into hex 
+    const sender_publickey_hex = sender_publickey.toString(CryptoJS.enc.Hex);
+    //send the public key to the other user 
+    socket.emit("senders public key ", sender_publickey_hex);
+
+    //recive the other user public key 
+    socket.on("otheruser public key",othere_public) 
+    const shared_secret = CryptoJS.DH(other_public, private_key);
+    
+    
+    //send the shared secret to the receiver 
+    socket.emit("", room_id);
+    //
+    //function to recieve the public key to receiver
+    socket.on("", (encrypted_secret_key) => {
+        console.log("receiver receives secret key" + encrypted_secret_key);
+    }); 
     
 
-    //need to send them 
-
-    //receive oether users public key 
-
-    //combien it with your own private key 
-
-    //hence gto the shared secret 
-    //use that secret to perform symmetric encryption on messages before sending them 
-
-    //do decryption of the message before showing htem on the sreen 
     
     
     
