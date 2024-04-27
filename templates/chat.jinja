@@ -83,7 +83,7 @@
     })
 
 
-    $(document).ready(async () => {
+    $(document).ready(() => {
         // room_id is undefined if the user hasn't joined a room
         // we early return in this case
         if (Cookies.get("room_id") == undefined) {
@@ -129,14 +129,14 @@
     });
 
     // sender receives the public key from the receiver and encrypts the secretKey and send to receiver
-    socket.on("send_receiver_public_key", async (receiver_public_key) => {
+    socket.on("send_receiver_public_key", (receiver_public_key) => {
         // console.log("sender receives and send " + sessionStorage.getItem("secretKey"));        
         const encryptedSecretKey = encryptRSA(sessionStorage.getItem("secretKey"), receiver_public_key);
         socket.emit("send_receiver_secret_key", encryptedSecretKey, room_id);
     });
 
     // receiver receives the encrypted secret key and decrypts it
-    socket.on("send_receiver_secret_key", async (encrypted_secret_key) => {
+    socket.on("send_receiver_secret_key", (encrypted_secret_key) => {
         // decrypts the secret key 
         const privateKey = sessionStorage.getItem("privateKey");
         const decryptedSecretKey = decryptRSA(encrypted_secret_key, privateKey);
