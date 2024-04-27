@@ -60,9 +60,9 @@
 </main>
 
 <script src="/static/js/libs/socket.io.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.js"></script>
 <script>
     let room_id = 0;
-
     // when the user presses the "Enter" key inside of the "message box", 
     // the message is sent to the server
     $("#message").on("keyup", (e) => {
@@ -92,6 +92,12 @@
         $("#chat_box").hide();
         $("#input_box").show();
         room_id = parseInt(Cookies.get("room_id"));
+        
+        // Generate public and private keys
+        const { publicKey, privateKey } = generateKeys();
+        sessionStorage.setItem("publicKey", publicKey);
+        sessionStorage.setItem("privateKey", privateKey);
+        console.log("Public" + sessionStorage.getItem("publicKey"))
     })
     
     // Here's the Socket IO part of the code
@@ -107,19 +113,119 @@
     socket.on("incoming", (msg, color="black") => {
         add_message(msg, color);
     })
-    
+
+    // receiver being asked by sender to send the public key
+    socket.on("ask_receiver_public_key", () => {
+        // sending the public key
+        socket.emit("send_receiver_public_key", sessionStorage.getItem("publicKey"), room_id)
+        // console.log("receiver sends " + receiver_public_key);
+    });
+
+    // sender receives the public key from the receiver and encrypts the secretKey and send to receiver
+    socket.on("send_receiver_public_key", (receiver_public_key) => {
+        // console.log("sender receives " + receiver_public_key);
+        //encrypts the receiver public key 
+        const encryptedSecretKey = encryptAES(receiver_public_key, key);
+        socket.emit("send_receiver_secret_key", encryptedSecretKey, room_id)
+    });
+
+    // receiver receives the encrypted secret key and decrypts it
+    socket.on("send_receiver_public_key", (encrypted_secret_key) => {
+        // console.log("receiver receives secret key" + encrypted_secret_key);
+        // decrypts the secret key 
+        const encryptedSecretKey = decryptAES(encrypted_secret_key, sessionStorage.getItem("privateKey"));
+    });
+
+    // Function to encrypt data using AES
+    function encryptAES(data, key) {
+        // Convert the key and data to WordArray objects
+        const keyWordArray = CryptoJS.enc.Hex.parse(key);
+        const dataWordArray = CryptoJS.enc.Utf8.parse(data);
+
+        // Perform AES encryption
+        const encrypted = CryptoJS.AES.encrypt(dataWordArray, keyWordArray, {
+            mode: CryptoJS.mode.ECB, // ECB mode is used here
+            padding: CryptoJS.pad.Pkcs7 // Padding scheme
+        });
+
+        // Convert the encrypted data to a Base64-encoded string
+        const encryptedBase64 = encrypted.toString();
+        return encryptedBase64;
+    }
+
+    // Function to decrypt data using AES
+    function decryptAES(encryptedData, key) {
+        // Convert the key to a WordArray object
+        const keyWordArray = CryptoJS.enc.Hex.parse(key);
+
+        // Convert the encrypted data from Base64 to a WordArray object
+        const encryptedWordArray = CryptoJS.enc.Base64.parse(encryptedData);
+
+        // Perform AES decryption
+        const decrypted = CryptoJS.AES.decrypt(
+            { ciphertext: encryptedWordArray },
+            keyWordArray,
+            {
+                mode: CryptoJS.mode.ECB,
+                padding: CryptoJS.pad.Pkcs7
+            }
+        );
+
+        // Convert the decrypted data to a Utf8-encoded string
+        const decryptedData = decrypted.toString(CryptoJS.enc.Utf8);
+
+        return decryptedData;
+    }
+
+    // Function to generate a random secret key
+    function generateSecretKey() {
+        // Define the length of the key in bytes (e.g., 16 bytes for a 128-bit key)
+        const keyLength = 16; // You can adjust the length as needed for your use case
+
+        // Generate random bytes
+        const randomBytes = CryptoJS.lib.WordArray.random(keyLength);
+
+        // Convert the random bytes to a hexadecimal string
+        const keyHex = randomBytes.toString(CryptoJS.enc.Hex);
+        return keyHex;
+    }
+
+    // Function to generate Diffie-Hellman keys
+    function generateKeys() {
+        // Generate a random private key (simulating private key generation)
+        const privateKey = CryptoJS.lib.WordArray.random(16).toString();
+
+        // Generate the corresponding public key using Diffie-Hellman algorithm
+        const publicKey = CryptoJS.SHA256(privateKey).toString();
+
+        return { publicKey, privateKey };
+    }
+
+    // Function to calculate MAC for a message
+    function calculateMAC(message, key) {
+        // Calculate HMAC-SHA256 using the shared key
+        const hmac = CryptoJS.HmacSHA256(message, key);
+        return hmac.toString();
+    }
+
+
     // we'll send the message to the server by emitting a "send" event
     function send() {
+        // ask the server for the receiver's public key
+        if (sessionStorage.getItem("sharedKey") != undefined) {
+            socket.emit("ask_receiver_public_key", room_id);
+        }
+
         let message = $("#message").val();
+        //let sharedKey = sessionStorage.getItem("sharedKey");
+        //let mac = calculateMAC(message, sharedKey); // Calculate MAC for the message
         $("#message").val("");
         socket.emit("send", username, message, room_id);  
     } 
 
     // we emit a join room event to the server to join a room
-    function join_room() {
-       
+    function join_room() {        
         let receiver = $("#receiver").val();
-        
         if (!{{ friends }}.includes(receiver)) {
             alert("Invalid receiver");
             return;
@@ -142,9 +248,13 @@
             // now we'll show the input box, so the user can input their message
             $("#chat_box").hide();
             $("#input_box").show();
+            let secretKey = generateSecretKey();
+            sessionStorage.setItem("secretKey", secretKey);
+
         });
      
     }
+
 
     // function when the user clicks on "Leave Room"
     // emits a "leave" event, telling the server that we want to leave the room

@@ -1,0 +1,220 @@
+<!-- 
+    Here you'll find the main exhibit: the chat application code. Feel free to look around!
+-->
+{% extends 'base.jinja' %}
+
+{% block content %} 
+   <style>
+    nav {
+        border-bottom: 1px solid black;
+        overflow: auto
+    }
+
+    #message_box {
+        border: 1px solid black; 
+        height: 400px; 
+        width: 800px; 
+        overflow: auto;
+        padding: 2px;
+    }
+
+    .text  {
+        margin-top: 2px;
+        margin-bottom: 2px;
+    }
+
+</style>
+
+<!--Navbar, you'll see the username here-->
+<nav style="border-bottom: 1px solid black;">
+    <ol style="float: right">
+        <li style="display:inline-block">Username:  {{ username }} </li>
+    </ol>
+</nav>
+
+<h1>Messaging App </h1>
+
+<main>
+    <!-- The messages are displayed here -->
+    <section id="message_box"></section>
+
+    <!-- These part ideally should be a form element, 
+    but I wrote this code a year ago and I don't want to break anything...-->
+
+    <section id="chat_box">
+        <p class="text">Chat with: </p>
+        <input id="receiver" placeholder="username">
+        <!-- MDN says its bad practice to use the onclick attribute,
+        but we're using it anyways coz its easy :)-->
+        <button onclick="join_room()">Chat</button>
+    </section>
+
+    <!-- The (message) input box is set to display: none initially, 
+    this means the input box is "invisible" initially-->
+
+    <section id="input_box" style="display: none" >
+        <p class="text">Message: </p>
+        <input id="message" placeholder="message">
+        <button onclick="send()">Send</button>
+        <button onclick="leave()">Leave Room</button>
+    </section>
+</main>
+
+<script src="/static/js/libs/socket.io.min.js"></script>
+//imports for crypto modules 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.js"></script>
+
+<script>
+    let room_id = 0;
+
+    // when the user presses the "Enter" key inside of the "message box", 
+    // the message is sent to the server
+
+    $("#message").on("keyup", (e) => {
+        if (e.key == "Enter") {
+        //ad funciton ot encrypt the message 
+        message = message.encode(); 
+        key = sharedSecret.encode();
+        message = CryptoJS.AES.encrypt(message, sharedSecret).toString();
+        socket.emit("send", username, encryptedMessage, room_id); 
+    })
+
+    // when the user presses the enter key inside of the "receiver box"
+    // the user joins a (socket) room
+
+     $("#receiver").on("keyup", (e) => {
+        if (e.key == "Enter") {
+            join_room();
+        }
+    })
+
+
+    $(document).ready(() => {
+        // room_id is undefined if the user hasn't joined a room
+        // we early return in this case
+        if (Cookies.get("room_id") == undefined) {
+            return;
+        }
+
+        // the user has already joined an existing room
+        // we'll display the message box, instead of the "Chat with: " box
+        $("#chat_box").hide();
+        $("#input_box").show();
+        room_id = parseInt(Cookies.get("room_id"));
+    })
+    
+    // Here's the Socket IO part of the code
+    // things get a bit complicated here so brace yourselves :P
+    let username = "{{ username }}";
+
+    Cookies.set('username', username);
+
+    // initializes the socket
+    const socket = io();
+    let key; 
+
+    // an incoming message arrives, we'll add the message to the message box
+    socket.on("incoming", (encryptmsg, color="black") => {
+        const decryptedMessage = CryptoJS.AES.decrypt(encryptedMessage, sharedSecret).toString(CryptoJS.enc.Utf8);
+        add_message(decryptedMessage, color);
+    })
+    
+    // we'll send the message to the server by emitting a "send" event
+    function send() {
+        let message = $("#message").val();
+        $("#message").val("");
+
+
+        socket.emit("send", username, message, room_id);  
+    } 
+
+    // we emit a join room event to the server to join a room
+    function join_room() {
+       
+        let receiver = $("#receiver").val();
+        
+        if (!{{ friends }}.includes(receiver)) {
+            alert("Invalid receiver");
+            return;
+        }
+
+        // pass in the receiver of our message to the server
+        // as well as the current user's username
+        
+        socket.emit("join", username, receiver, (res) => {
+            // res is a string with the error message if the error occurs
+            // this is a pretty bad way of doing error handling, but watevs
+            if (typeof res != "number") {
+                alert(res);
+                return;
+            }
+
+            // set the room id variable to the room id returned by the server
+            room_id = res;
+            Cookies.set("room_id", room_id);
+
+            //users join the room her we do have sender and receiver
+
+            //random function to genrate a random number common_PARAM  GIVE NAY ONE COMMON VALUE
+            const common_Param = 78; 
+            const prime = 23; 
+
+            let sender_publickey;
+
+            //created the secret keys when the user login in and are stored in local storage of java 
+            // Retrieve the secret key from local storage
+            let secretKey = localStorage.getItem('secretKey');
+            // Calculate public key using DHKE
+            let publicKey = modPow(common_Param, secretKey, prime);
+
+            socket.emit("sendKey", username, publicKey, room_id); 
+
+            // Inside the function where you receive the encrypted key
+            socket.on("incomingKey", (encryptedKey) => {
+                otheruser_key = encryptedKey; // Store the encrypted key in the variable
+            });
+
+            const sharedSecret = modPow(otheruser_key, secretKey, commonParam);
+
+            // now we'll show the input box, so the user can input their message
+            $("#chat_box").hide();
+            $("#input_box").show();
+        });
+     
+    }
+
+    // function when the user clicks on "Leave Room"
+    // emits a "leave" event, telling the server that we want to leave the room
+    function leave() {
+        Cookies.remove("room_id");
+        socket.emit("leave", username, room_id);
+        $("#input_box").hide();
+        $("#chat_box").show();
+    }
+
+    // function to add a message to the message box
+    // called when an incoming message has reached a client
+    function add_message(message, color) {
+        let box = $("#message_box");
+        let child = $(`<p style="color:${color}; margin: 0px;"></p>`).text(message);
+        box.append(child);
+    }
+
+    // Function to calculate modular exponentiation (a^b mod m)
+    function modPow(a, b, m) {
+        let result = 1;
+        a %= m;
+        while (b > 0) {
+            if (b & 1) {
+                result = (result * a) % m;
+            }
+            b >>= 1;
+            a = (a * a) % m;
+        }
+        return result;
+    }
+
+    
+</script>
+{% endblock %}
