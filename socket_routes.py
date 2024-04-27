@@ -45,6 +45,8 @@ def connect():
         emit("incoming", (f"{username} has connected", "green"), to=int(room_id))
         if len(user) == 1:
             emit("incoming", ("Receiver is not online. Messages will not be received!", "green"))
+
+        emit("connected", room_id)
         return room_id
 
 
@@ -153,3 +155,33 @@ def send_receiver_public_key(public_key, room_id):
 def send_receiver_public_key(secretKey, room_id):
     # emit to everyone in the room except the sender
     emit("send_receiver_secret_key", secretKey, to=room_id, include_self=False)
+
+@socketio.on("get_hashed_passwords")
+def get_hashed_passwords(sender_name, receiver_name):
+    sender_hashed_password = db.get_user(sender_name).password
+    receiver_hashed_password = db.get_user(receiver_name).password
+    return sender_hashed_password + receiver_hashed_password
+
+@socketio.on("get_room_salt")
+def get_room_salt(room_id):
+    return room.get_room_salt(room_id)
+
+@socketio.on("store_encrypted_key")
+def store_encrypted_key(username, room_id, encryptedKey):
+    db.insert_encryption_key(username, room_id, encryptedKey)
+    db.get_encryption_key(username, room_id)
+    return True
+
+@socketio.on("get_encrypted_key")
+def get_encrypted_key(username, room_id):
+    db.get_encryption_key(username, room_id)
+    return True
+
+@socketio.on("store_encrypted_message")
+def store_encrypted_message(room_id, encryptedMessage):
+    db.store_encrypted_message(room_id, encryptedMessage)
+    return True
+
+@socketio.on("get_encrypted_messages")
+def get_encrypted_messages(room_id):
+    return db.retrieve_encrypted_messages(room_id)

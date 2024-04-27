@@ -118,10 +118,68 @@ def delete_requests(username: str, recipient: str):
         print(f"Friend requests from '{username}' to '{recipient}' deleted.")
 
 
-# def insert_test(username: str):
-#     with Session(engine) as session:
-#         friend = User(username="test", password="test")
-#         session.add(friend)
-#         user = session.get(User, username)
-#         user.friends.append(friend)
-#         session.commit()
+def insert_encryption_key(username: str, room_id: int, encrypted_key: str):
+    with Session(engine) as session:
+        try:
+            # Check if the combination of username and room_id already exists in the table
+            existing_key = session.query(MessageDecryptionKeys).filter_by(username=username, room_id=room_id).first()
+
+            if existing_key:
+                # If the combination already exists, update the encrypted key
+                existing_key.encrypted_key = encrypted_key
+            else:
+                # If the combination doesn't exist, create a new entry
+                new_key = MessageDecryptionKeys(username=username, room_id=room_id, encrypted_key=encrypted_key)
+                session.add(new_key)
+            
+            # Commit the changes to the database
+            session.commit()
+            return True  # Return True to indicate successful insertion/update
+        except Exception as e:
+            # Handle any exceptions
+            session.rollback()  # Rollback the transaction
+            print(f"Error occurred: {e}")
+            return False  # Return False to indicate failure
+
+def get_encryption_key(username: str, room_id: int):
+    # Create a session
+    with Session(engine) as session:
+        try:
+            # Query the MessageDecryptionKeys table for the encryption key
+            encryption_key = session.query(MessageDecryptionKeys).filter_by(username=username, room_id=room_id).first()
+
+            if encryption_key:
+                # If an encryption key is found, return it
+                return encryption_key.encrypted_key
+            else:
+                # If no encryption key is found, return None
+                return None
+        except Exception as e:
+            # Handle any exceptions
+            print(f"Error occurred: {e}")
+            return None  # Return None to indicate failure
+
+def store_encrypted_message(room_id: int, encrypted_message: str):
+    with Session(engine) as session:
+        try:
+            # Create a new MessageHistory object and add it to the session
+            new_message = MessageHistory(room_id=room_id, encrypted_message=encrypted_message)
+            session.add(new_message)
+            session.commit()
+            return True  # Return True to indicate successful insertion
+        except Exception as e:
+            # Handle any exceptions
+            session.rollback()  # Rollback the transaction
+            print(f"Error occurred: {e}")
+            return False  # Return False to indicate failure
+
+def retrieve_encrypted_messages(room_id: int):
+    with Session(engine) as session:
+        try:
+            # Query the MessageHistory table for encrypted messages ordered by message ID in ascending order
+            messages = session.query(MessageHistory).filter_by(room_id=room_id).order_by(MessageHistory.message_id.asc()).all()
+            return [message.encrypted_message for message in messages]
+        except Exception as e:
+            # Handle any exceptions
+            print(f"Error occurred: {e}")
+            return None  # Return None to indicate failure

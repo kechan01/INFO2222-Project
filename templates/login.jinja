@@ -14,6 +14,7 @@
     
     <!-- CryptoJS library for hashing password -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/pbkdf2.min.js"></script>
 
     <script>
 
@@ -48,6 +49,11 @@
             let password = $("#password").val();
             let hashedPassword = hashPassword(password); // Hash the password
 
+            // creates a symmetric key from the password for this user session for encrypting messages
+            const passwordKey = deriveKeyFromPassword(password);
+            sessionStorage.setItem("passwordKey", passwordKey);
+            // console.log("passwordKey " + sessionStorage.getItem("passwordKey"));
+
             // axios post is a fancy way of posting a request to the server,
             // we pass in the username and password here
             let res = await axios.post(loginURL, {
@@ -64,7 +70,36 @@
             // redirects to the URL (ie. res.data),
             // we use _self here since we all hate that moment
             // when the browser opens a new tab
-            window.open(res.data, "_self")
+            window.open(res.data, "_self");
         }
+
+        function deriveKeyFromPassword(password) {
+            // Convert the password and salt to WordArrays
+            var passwordWordArray = CryptoJS.enc.Utf8.parse(password);
+            var saltWordArray = CryptoJS.enc.Hex.parse(generateRandomSalt(18));
+
+            // Derive the key using PBKDF2
+            var key = CryptoJS.PBKDF2(passwordWordArray, saltWordArray, {
+                keySize: 256 / 32, // keySize is in bits, so divide by 32 to get the number of 32-bit words
+                iterations: 1000
+            });
+
+            return key;
+        }
+
+        // Function to generate a random salt using crypto.getRandomValues()
+        function generateRandomSalt(length) {
+            var charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            var salt = '';
+            var randomValues = new Uint8Array(length);
+            window.crypto.getRandomValues(randomValues);
+            for (var i = 0; i < length; i++) {
+                var randomIndex = randomValues[i] % charset.length;
+                salt += charset[randomIndex];
+            }
+            return salt;
+        }
+
+    
     </script>
 {% endblock %}

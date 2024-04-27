@@ -144,6 +144,10 @@
         // console.log("receiver receives secret key" + decryptedSecretKey);
     });
 
+    socket.on("connected", (room_id) => {
+        displayMessageHistory(room_id);
+    });
+
 
     // Function to generate a random secret key
     function generateSecretKey() {
@@ -188,6 +192,21 @@
         let message = $("#message").val();
         $("#message").val("");
         socket.emit("send", username, message, room_id);  
+
+        <!-- store encrypted message into the database -->
+        if (sessionStorage.getItem("messageHistoryKey") == null) {
+            // the encryption key might be null if they user disconnected and connected again
+            console.log("Message Encryption key is null!");
+            socket.emit("get_encrypted_key", username, room_id, (res) => {
+                decryptedKey = decryptData(res, sessionStorage.getItem("passwordKey"));
+                console.log(decryptedKey);
+                sessionStorage.setItem("messageHistoryKey", decryptedKey);
+            })
+        }
+        console.log("Message Encryption key exists!");
+        const userAndMessage = username + ": " + message;
+        const encryptedMessage = encryptData(userAndMessage, sessionStorage.getItem("messageHistoryKey"));
+        socket.emit("store_encrypted_message", room_id, encryptedMessage);  
     } 
 
     // we emit a join room event to the server to join a room
@@ -218,13 +237,114 @@
             // now we'll show the input box, so the user can input their message
             $("#chat_box").hide();
             $("#input_box").show();
+
+            // generate the secret key for message encryption
             let secretKey = generateSecretKey();
-            sessionStorage.setItem("secretKey", secretKey);
-            
+            sessionStorage.setItem("secretKey", secretKey);            
         });
-     
+
+        // get the message encryption key for that room
+        socket.emit("get_encrypted_key", username, room_id, (res) => {
+            // if user already has the right key, decrypt it using plaintext password and set it in sessionStorage
+            if (res != null) {
+                console.log("Found a message encryption key!");
+                decryptedKey = decryptData(res, sessionStorage.getItem("passwordKey"));
+                // console.log("Decrypted key " + decryptedKey);
+                sessionStorage.setItem("messageHistoryKey", decryptedKey);
+            } else {
+                // message encryption key does not exist, create one using hashed passwords from users in same room and room salt
+                console.log("Creating a message encryption key for this room!");
+                var hashedPasswordPromise = new Promise((resolve, reject) => {
+                    socket.emit("get_hashed_passwords", username, receiver, (res) => {
+                        resolve(res);
+                    });
+                });
+
+                var roomSaltPromise = new Promise((resolve, reject) => {
+                    socket.emit("get_room_salt", room_id, (res) => {
+                        resolve(res);
+                    });
+                });
+
+                Promise.all([hashedPasswordPromise, roomSaltPromise]).then(([hashedPassword, roomSalt]) => {
+                    console.log("HASHED PWD: " + hashedPassword);
+                    console.log("SALT: " + roomSalt);
+                    
+                    // deriving message encryption key
+                    const eKey = deriveMessageEncryptionKey(hashedPassword, roomSalt);
+                    sessionStorage.setItem("messageHistoryKey", eKey);
+                    // console.log("eKEY: " + eKey);
+                    
+                    // encrypting the key with plaintext pwd and storing it in user's messageDecryptionKeys table
+                    const encryptedKey = encryptData(eKey, sessionStorage.getItem("passwordKey"));
+                    socket.emit("store_encrypted_key", username, room_id, encryptedKey);
+                });
+
+            }
+        })
+
+        displayMessageHistory(room_id);
     }
 
+    function displayMessageHistory(roomId) {
+        console.log("Displaying message history!");
+        socket.emit('get_encrypted_messages', roomId, (encrypted_messages) => {
+            // Once message history is received from the server, display it in the UI
+            encrypted_messages.forEach((message) => {
+                var decryptedMessage = decryptData(message, sessionStorage.getItem("messageHistoryKey"));
+                add_message(decryptedMessage, "grey"); // Assuming message contains text and color
+            });
+        });
+    }
+
+    // deriving message encryption key
+    function deriveMessageEncryptionKey(hashedPassword, salt) {
+        // Convert the password and salt to WordArrays
+        var passwordWordArray = CryptoJS.enc.Utf8.parse(hashedPassword);
+        var saltWordArray = CryptoJS.enc.Hex.parse(salt);
+
+        // Derive the key using PBKDF2
+        var key = CryptoJS.PBKDF2(passwordWordArray, saltWordArray, {
+            keySize: 256 / 32, // keySize is in bits, so divide by 32 to get the number of 32-bit words
+            iterations: 1000
+        });
+        return key;
+    }
+
+    // Function to encrypt data using AES encryption
+    function encryptData(data, key) {
+        // Convert the key to a WordArray
+        const keyWordArray = CryptoJS.enc.Utf8.parse(key);
+        
+        // Encrypt the data using AES encryption with the key
+        const encryptedData = CryptoJS.AES.encrypt(data, keyWordArray, {
+            mode: CryptoJS.mode.ECB, // ECB mode is not recommended for secure encryption, use a more secure mode like CBC
+            padding: CryptoJS.pad.Pkcs7 // Padding scheme, PKCS7 is commonly used
+        });
+        
+        // Convert the encrypted data to a base64-encoded string
+        return encryptedData.toString();
+    }
+
+    // Function to decrypt data using AES encryption
+    function decryptData(encryptedData, key) {
+        try {
+            // Convert the key to a WordArray
+            const keyWordArray = CryptoJS.enc.Utf8.parse(key);
+            
+            // Decrypt the data using AES decryption with the key
+            const decryptedData = CryptoJS.AES.decrypt(encryptedData, keyWordArray, {
+                mode: CryptoJS.mode.ECB, // ECB mode is not recommended for secure encryption, use a more secure mode like CBC
+                padding: CryptoJS.pad.Pkcs7 // Padding scheme, PKCS7 is commonly used
+            });
+            
+            // Convert the decrypted data to a UTF-8 string
+            return decryptedData.toString(CryptoJS.enc.Utf8);
+        } catch (error) {
+            console.error("Error occurred while decrypting data:", error);
+            return null;
+        }
+    }
 
     // function when the user clicks on "Leave Room"
     // emits a "leave" event, telling the server that we want to leave the room

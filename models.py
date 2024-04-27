@@ -38,7 +38,8 @@ class User(Base):
     username: Mapped[str] = mapped_column(String, primary_key=True)
     password: Mapped[str] = mapped_column(String)
     salt: Mapped[str] = mapped_column(String)
-
+    
+    # creation of another table which is related to user in our database
     friends = relationship("User",
                 secondary=association_table,
                 primaryjoin=username==association_table.c.user_id,
@@ -49,6 +50,9 @@ class User(Base):
     # Field to store pending friend requests
     requests = relationship("FriendRequest", primaryjoin="or_(User.username==FriendRequest.sender_id, User.username==FriendRequest.recipient_id)", backref="recipient")
     
+    # Relationship with DecryptionRoomMessages table
+    message_decryption_keys = relationship("MessageDecryptionKeys", backref="user")
+
     def set_password(self, password: str):
         # Generate a salt
         self.salt = secrets.token_hex(16)
@@ -71,6 +75,23 @@ class FriendRequest(Base):
     recipient_id: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
     accepted: Mapped[bool] = mapped_column(Boolean, default=False)
 
+# Table to store decryption room messages
+class MessageDecryptionKeys(Base):
+    __tablename__ = "message_decryption_keys"
+
+    username: Mapped[str] = mapped_column(String, ForeignKey('user.username'), primary_key=True)
+    room_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    encrypted_key: Mapped[str] = mapped_column(String)
+
+# Table to store message history
+class MessageHistory(Base):
+    __tablename__ = "message_history"
+
+    message_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    room_id: Mapped[int] = mapped_column(Integer)
+    encrypted_message: Mapped[str] = mapped_column(String)
+
+
 # stateful counter used to generate the room id
 class Counter():
     def __init__(self):
@@ -88,11 +109,14 @@ class Room():
         # for example self.dict["John"] -> gives you the room id of 
         # the room where John is in
         self.dict: Dict[str, int] = {}
+        self.salt: Dict[int, str] = {}  # Dictionary to store room-specific salt
+
 
     def create_room(self, sender: str, receiver: str) -> int:
         room_id = self.counter.get()
         self.dict[sender] = room_id
         self.dict[receiver] = room_id
+        self.salt[room_id] = secrets.token_hex(16)  # Generate and store room-specific salt
         return room_id
     
     def join_room(self,  sender: str, room_id: int) -> int:
@@ -116,7 +140,10 @@ class Room():
         for user, id in self.dict.items():
             if int(id) == room_id:
                 users.append(user)
-
         return users
+    
+    def get_room_salt(self, room_id: int):
+        return self.salt.get(room_id)
+
 
     
