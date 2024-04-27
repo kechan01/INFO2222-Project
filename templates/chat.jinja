@@ -116,8 +116,16 @@
     // initializes the socket
     const socket = io();
 
+    let message = ''; 
+
     // an incoming message arrives, we'll add the message to the message box
     socket.on("incoming", (msg, color="black") => {
+        message = msg;
+        add_message(msg, color);    
+    })
+
+    // an incoming warning arrives, we'll add the message to the message box
+    socket.on("warnings", (msg, color="black") => {
         add_message(msg, color);
     })
 
@@ -135,7 +143,7 @@
         socket.emit("send_receiver_secret_key", encryptedSecretKey, room_id);
     });
 
-    // receiver receives the encrypted secret key and decrypts it
+    // receiver receives the encrypted secret key and decrypts it 
     socket.on("send_receiver_secret_key", (encrypted_secret_key) => {
         // decrypts the secret key 
         const privateKey = sessionStorage.getItem("privateKey");
@@ -148,6 +156,36 @@
         displayMessageHistory(room_id);
     });
 
+    socket.on("send_mac", (mac_from_sender) => {
+        // console.log("sender's: " + message);
+        const mac = generateMAC(sessionStorage.getItem("secretKey"), message);
+        if (mac_from_sender != mac) {
+            
+            console.log("Message did not pass HMAC integrity check!");
+        } else {
+            console.log("Message successfully passed HMAC integrity check!");
+        }
+    });
+
+    // receiver sends their combined key to sender
+    socket.on("request_combined_key", () => {
+        // generate a unique key for user
+        const userKey = generateSecretKey();
+        sessionStorage.setItem("uniqueKey", userKey);
+
+        // combine secret key with the user's unique key
+        const userSecretKey = performKeyDerivation(sessionStorage.getItem("secretKey"), userKey);
+
+        // send the combined key to sender
+        socket.emit("send_combined_key", userSecretKey, room_id); 
+    });
+
+    // receiver gets the combined_key and combine it with their own key
+    socket.on("send_combined_key", (combined_key) => {
+        const sharedKey = performKeyDerivation(combined_key, sessionStorage.getItem("uniqueKey"));
+        sessionStorage.setItem("sharedKey", sharedKey);
+        console.log("Shared key: " + sharedKey);
+    });    
 
     // Function to generate a random secret key
     function generateSecretKey() {
@@ -183,16 +221,36 @@
         return crypt.decrypt(ciphertext);
     }
 
+    function generateMAC(sharedKey, message) {
+        // Calculate HMAC using SHA-256 hash function
+        const hmac = CryptoJS.HmacSHA256(message, sharedKey);
+        
+        // Convert HMAC to hexadecimal representation
+        const hmacHex = hmac.toString(CryptoJS.enc.Hex);
+        
+        return hmacHex;
+    }
+
     // we'll send the message to the server by emitting a "send" event
     function send() {
-        // ask the server for the receiver's public key if shared key not established
+        // ask the server for the receiver's public key to send secret key if shared key not established
         if (sessionStorage.getItem("sharedKey") == null) {
             socket.emit("ask_receiver_public_key", room_id);
         }
-        let message = $("#message").val();
+        message = $("#message").val();
         $("#message").val("");
-        socket.emit("send", username, message, room_id);  
 
+        socket.emit("send", username, message, room_id);    
+
+        const userAndMessage = username + ": " + message;
+
+        // create mac for the message for integrity checking
+        const mac = generateMAC(sessionStorage.getItem("secretKey"), userAndMessage);
+        // console.log("sender's mac: " + mac);
+
+        // send mac to the recipient
+        socket.emit("send_mac", mac, room_id);
+        
         <!-- store encrypted message into the database -->
         if (sessionStorage.getItem("messageHistoryKey") == null) {
             // the encryption key might be null if they user disconnected and connected again
@@ -204,10 +262,10 @@
             })
         }
         console.log("Message Encryption key exists!");
-        const userAndMessage = username + ": " + message;
         const encryptedMessage = encryptData(userAndMessage, sessionStorage.getItem("messageHistoryKey"));
         socket.emit("store_encrypted_message", room_id, encryptedMessage);  
     } 
+
 
     // we emit a join room event to the server to join a room
     function join_room() {        
@@ -309,6 +367,18 @@
             iterations: 1000
         });
         return key;
+    }
+
+    // Function to perform key derivation
+    function performKeyDerivation(secretKey, otherKey) {
+        // Concatenate the secret key and other key
+        const combinedData = secretKey.concat(otherKey);
+
+        // Perform a hash operation (e.g., SHA-256) on the combined data to derive a new key
+        const derivedKey = CryptoJS.SHA256(combinedData);
+
+        // Return the derived key as a byte array
+        return derivedKey.toString(CryptoJS.enc.Hex);
     }
 
     // Function to encrypt data using AES encryption
