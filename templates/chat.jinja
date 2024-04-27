@@ -228,7 +228,7 @@
 
     //functions related to the encryption of the messages 
     //common parameter 
-    const common_param = generateSecretKey(); 
+    const common_param = sessionStorage("seretKey"); 
     
     //function to generate random private keys
     const private_key = generateSecretKey(): 
@@ -236,17 +236,17 @@
     const sender_publickey = CryptoJS.DH(common_param, private_key);
     //convert the shared secret into hex 
     const sender_publickey_hex = sender_publickey.toString(CryptoJS.enc.Hex);
+    
     //send the public key to the other user 
-    socket.emit("senders public key ", sender_publickey_hex);
+    socket.emit("sendPublicKey",sender_publickey_hex);
 
     //recive the other user public key 
-    socket.on("otheruser public key",othere_public) 
-    const shared_secret = CryptoJS.DH(other_public, private_key);
-    
-    
-    //send the shared secret to the receiver 
+    socket.on("sendPublicKey",(other_public)=>{ 
+        const shared_secret = CryptoJS.DH(other_public, private_key);
+    });
+     
     socket.emit("", room_id);
-    //
+
     //function to recieve the public key to receiver
     socket.on("", (encrypted_secret_key) => {
         console.log("receiver receives secret key" + encrypted_secret_key);
