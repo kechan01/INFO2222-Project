@@ -44,6 +44,11 @@ def index():
 def login():    
     return render_template("login.jinja")
 
+@app.route("/logout")
+def logout():    
+    session.pop('username', default=None)
+    return redirect(url_for('login'))
+
 # handles a post request when the user clicks the log in button
 @app.route("/login/user", methods=["POST"])
 def login_user():
