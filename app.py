@@ -46,6 +46,8 @@ def login():
 
 @app.route("/logout")
 def logout():    
+    username = session.get('username')
+    db.change_online_status(username, False)
     session.pop('username', default=None)
     return redirect(url_for('login'))
 
@@ -65,7 +67,7 @@ def login_user():
         return "Error: Password does not match!"
 
     session['username'] = username  # Store username in session
-    user.status = "online"
+    db.change_online_status(username, True) # Change user's online status to true
 
     return url_for('friends', username=request.json.get("username"))
 
@@ -118,7 +120,7 @@ def friends():
     else:
         # Retrieve username from session
         username = session['username']
-
+        
         # Get friends for the authenticated user
         friends = db.get_friends(username)
         requests = db.get_requests(username)

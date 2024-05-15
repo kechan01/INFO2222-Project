@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from models import *
 
 from pathlib import Path
+import atexit
 
 # creates the database directory
 Path("database") \
@@ -183,3 +184,44 @@ def retrieve_encrypted_messages(room_id: int):
             # Handle any exceptions
             print(f"Error occurred: {e}")
             return None  # Return None to indicate failure
+
+def change_online_status(username: str, new_status: bool):
+    with Session(engine) as session:
+        try:
+            user = session.query(User).filter_by(username=username).first()
+            if user:
+                user.online_status = new_status
+                session.commit()
+                print(f"User '{username}' online status updated to {new_status}")
+            else:
+                print(f"User '{username}' not found.")
+        except Exception as e:
+            print("An error occurred:", e)
+
+
+def get_online_status(username: str):
+    with Session(engine) as session:
+        try:
+            user = session.query(User).filter_by(username=username).first()
+            if user:
+                return user.online_status
+            else:
+                print(f"User '{username}' not found.")
+                return None
+        except Exception as e:
+            print("An error occurred:", e)
+            return None
+
+def set_all_users_offline():
+    with Session(engine) as session:
+        try:
+            # Update the online status of all users to False
+            session.query(User).update({User.online_status: False})
+            session.commit()
+            print("All users set to offline.")
+        except Exception as e:
+            session.rollback()
+            print("An error occurred while setting all users offline:", e)
+
+# Register the set_all_users_offline function to be called when the script exits
+atexit.register(set_all_users_offline)

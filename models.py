@@ -38,7 +38,8 @@ class User(Base):
     username: Mapped[str] = mapped_column(String, primary_key=True)
     password: Mapped[str] = mapped_column(String)
     salt: Mapped[str] = mapped_column(String)
-    
+    online_status: Mapped[bool] = mapped_column(Boolean, default=False)
+
     # creation of another table which is related to user in our database
     friends = relationship("User",
                 secondary=association_table,
