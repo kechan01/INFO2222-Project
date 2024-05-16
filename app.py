@@ -24,12 +24,12 @@ socketio = SocketIO(app)
 
 
 # SSL certificate and private key paths
-certfile = './certs/localhost.crt'
-keyfile = './certs/localhost.key'
+#certfile = './certs/localhost.crt'
+#keyfile = './certs/localhost.key'
 
 # Create an SSL context with the certificate and private key
-ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-ssl_context.load_cert_chain(certfile, keyfile)
+#ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+#ssl_context.load_cert_chain(certfile, keyfile)
 
 # don't remove this!!
 import socket_routes
@@ -60,6 +60,7 @@ def login_user():
         return "Error: Password does not match!"
 
     session['username'] = username  # Store username in session
+    user.status = "online"
 
     return url_for('friends', username=request.json.get("username"))
 
@@ -162,4 +163,4 @@ def heartbeat():
     return 'OK', 200
 
 if __name__ == '__main__':
-    socketio.run(app, host='127.0.0.1', port=5000, ssl_context=ssl_context)
+    socketio.run(app, host='127.0.0.1', port=5000)

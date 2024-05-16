@@ -1,0 +1,78 @@
+/* Style for h1 */
+h1 {
+    text-align: center; /* Center align the heading */
+
+}
+
+/* Style for h2 */
+h2.nav-heading {
+    text-align: right; /* Right align the smaller heading */
+}
+
+/* Style for nav links */
+nav {
+    text-decoration: none; /* Remove underline */
+    color: white; /* Set text color to white */
+}
+
+nav a {
+    margin-left: 10px; /* Add some spacing between links if needed */
+}
+
+header{ 
+    border-width:3px; 
+    border-style:solid; 
+    border-color: black ; 
+    background-color: darkgrey;
+} 
+
+h2{ 
+    text-align: center;
+}
+
+* {
+        box-sizing: border-box;
+    }
+    
+    /* Create three unequal columns that floats next to each other */
+    .column {
+        float: left;
+        padding: 10px;
+    }
+    
+    .left{
+        width: 25%;
+        text-align: left;
+    }
+    
+    .middle {
+        width: 25%;
+        text-align: center; 
+    }
+
+    .right{
+
+        width: 50%;
+        text-align: left; 
+    }
+    
+    /* Clear floats after the columns */
+    .row:after {
+        content: "";
+        display: table;
+        clear: both;
+
+    }
+
+    .picture{ 
+        padding: 100px; 
+        border-width:3px; 
+        border-style:solid; 
+        border-color: black ; 
+        background-color: darkgrey;
+        color: white; 
+        border-radius: 100%;
+    }
+.addnewfriend{ 
+    text-align: center;
+}
