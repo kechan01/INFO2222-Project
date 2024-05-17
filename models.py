@@ -46,6 +46,9 @@ class User(Base):
     salt: Mapped[str] = mapped_column(String)
     online_status: Mapped[bool] = mapped_column(Boolean, default=False)
     role: Mapped[str] = mapped_column(String, default=UserRole.STUDENT.value)
+    post: Mapped[bool] = mapped_column(Boolean, default=True)  # Added post column
+    chat: Mapped[bool] = mapped_column(Boolean, default=True)  # Added chat column
+
 
     # creation of another table which is related to user in our database
     friends = relationship("User",

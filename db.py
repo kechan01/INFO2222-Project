@@ -241,5 +241,161 @@ def set_all_users_offline():
             session.rollback()
             print("An error occurred while setting all users offline:", e)
 
+def add_article(author_username: str, title: str, content: str, category: str):
+    with Session(engine) as session:
+        try:
+            # Create a new Article object
+            new_article = Article(author_id=author_username, title=title, content=content, category=category)
+            session.add(new_article)
+            session.commit()
+            print("Article added successfully.")
+            return True
+        except Exception as e:
+            session.rollback()
+            print("An error occurred while adding the article:", e)
+            return False
+
+def delete_article(article_id: int):
+    with Session(engine) as session:
+        try:
+            # Query the Article object to be deleted
+            article_to_delete = session.query(Article).filter_by(article_id=article_id).first()
+            if article_to_delete:
+                session.delete(article_to_delete)
+                session.commit()
+                print("Article deleted successfully.")
+                return True
+            else:
+                print("Article not found.")
+                return False
+        except Exception as e:
+            session.rollback()
+            print("An error occurred while deleting the article:", e)
+            return False
+
+def edit_article(article_id: int, new_title: str, new_content: str, new_category: str):
+    with Session(engine) as session:
+        try:
+            # Query the Article object to be edited
+            article_to_edit = session.query(Article).filter_by(article_id=article_id).first()
+            if article_to_edit:
+                # Update the article attributes
+                article_to_edit.title = new_title
+                article_to_edit.content = new_content
+                article_to_edit.category = new_category
+                session.commit()
+                print("Article edited successfully.")
+                return True
+            else:
+                print("Article not found.")
+                return False
+        except Exception as e:
+            session.rollback()
+            print("An error occurred while editing the article:", e)
+            return False
+
+def get_article(article_id: int):
+    with Session(engine) as session:
+        try:
+            # Query the Article object by its ID
+            article = session.query(Article).filter_by(article_id=article_id).first()
+            if article:
+                # Return the article object
+                return article
+            else:
+                print("Article not found.")
+                return None
+        except Exception as e:
+            print("An error occurred while retrieving the article:", e)
+            return None
+        
+def get_article_by_name(title: str):
+    with Session(engine) as session:
+        try:
+            # Query the Article object by its title
+            article = session.query(Article).filter_by(title=title).first()
+            if article:
+                # Return the article object
+                return article
+            else:
+                print("Article not found.")
+                return None
+        except Exception as e:
+            print("An error occurred while retrieving the article:", e)
+            return None
+
+def get_articles_by_category(category: str):
+    with Session(engine) as session:
+        try:
+            # Query articles by category
+            articles = session.query(Article).filter_by(category=category).all()
+            return articles
+        except Exception as e:
+            print("An error occurred while retrieving articles by category:", e)
+            return None
+
+
+def get_comments(article_id: int):
+    with Session(engine) as session:
+        try:
+            # Query all comments associated with the specified article
+            comments = session.query(Comment).filter_by(article_id=article_id).all()
+            return comments
+        except Exception as e:
+            print("An error occurred while retrieving comments:", e)
+            return None
+
+def delete_comment(comment_id: int):
+    with Session(engine) as session:
+        try:
+            # Query the Comment object to be deleted
+            comment_to_delete = session.query(Comment).filter_by(comment_id=comment_id).first()
+            if comment_to_delete:
+                session.delete(comment_to_delete)
+                session.commit()
+                print("Comment deleted successfully.")
+                return True
+            else:
+                print("Comment not found.")
+                return False
+        except Exception as e:
+            session.rollback()
+            print("An error occurred while deleting the comment:", e)
+            return False
+
+def change_user_role(username: str, new_role: str):
+    with Session(engine) as session:
+        try:
+            # Query the user object to be updated
+            user_to_update = session.query(User).filter_by(username=username).first()
+            if user_to_update:
+                # Update the user's role
+                user_to_update.role = new_role
+                session.commit()
+                print(f"User '{username}' role updated to '{new_role}'.")
+                return True
+            else:
+                print("User not found.")
+                return False
+        except Exception as e:
+            session.rollback()
+            print("An error occurred while changing the user's role:", e)
+            return False
+
+def get_user_role(username: str):
+    with Session(engine) as session:
+        try:
+            # Query the user object by username
+            user = session.query(User).filter_by(username=username).first()
+            if user:
+                # Return the user's role
+                return user.role
+            else:
+                print("User not found.")
+                return None
+        except Exception as e:
+            print("An error occurred while retrieving the user's role:", e)
+            return None
+
 # Register the set_all_users_offline function to be called when the script exits
 atexit.register(set_all_users_offline)
