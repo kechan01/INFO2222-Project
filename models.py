@@ -15,7 +15,8 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from typing import Dict
 import hashlib
 import secrets
-
+from enum import Enum
+from datetime import datetime
 
 # data models
 class Base(DeclarativeBase):
@@ -25,6 +26,11 @@ association_table = Table('association', Base.metadata,
     Column('user_id', Integer, ForeignKey('user.username')),
     Column('friend_id', Integer, ForeignKey('user.username'))
 )
+
+class UserRole(Enum):
+    STUDENT = "student"
+    STAFF = "staff"
+    ADMIN = "admin"
 
 # model to store user information
 class User(Base):
@@ -39,6 +45,7 @@ class User(Base):
     password: Mapped[str] = mapped_column(String)
     salt: Mapped[str] = mapped_column(String)
     online_status: Mapped[bool] = mapped_column(Boolean, default=False)
+    role: Mapped[str] = mapped_column(String, default=UserRole.STUDENT.value)
 
     # creation of another table which is related to user in our database
     friends = relationship("User",
@@ -112,7 +119,6 @@ class Room():
         self.dict: Dict[str, int] = {}
         self.salt: Dict[int, str] = {}  # Dictionary to store room-specific salt
 
-
     def create_room(self, sender: str, receiver: str) -> int:
         room_id = self.counter.get()
         self.dict[sender] = room_id
@@ -122,7 +128,6 @@ class Room():
     
     def join_room(self,  sender: str, room_id: int) -> int:
         self.dict[sender] = room_id
-
 
     def leave_room(self, user):
         if user not in self.dict.keys():
@@ -147,4 +152,24 @@ class Room():
         return self.salt.get(room_id)
 
 
-    
+class Article(Base):
+    __tablename__ = "article"
+
+    article_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    author_id: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
+    title: Mapped[str] = mapped_column(String)
+    content: Mapped[str] = mapped_column(String)
+    date_posted: Mapped[datetime] = mapped_column(datetime, default=datetime.now)
+    category: Mapped[str] = mapped_column(String)
+
+    # Relationship with Comments table
+    comments = relationship("Comment", backref="article")
+
+class Comment(Base):
+    __tablename__ = "comment"
+
+    comment_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    article_id: Mapped[int] = mapped_column(Integer, ForeignKey('article.article_id'))
+    author_id: Mapped[str] = mapped_column(String, ForeignKey('user.username'))
+    content: Mapped[str] = mapped_column(String)
+    date_posted: Mapped[datetime] = mapped_column(datetime, default=datetime.now)

@@ -43,8 +43,18 @@ def connect():
         room.join_room(username, room_id)
         user = room.get_users(int(room_id))
         emit("warnings", (f"{username} has connected", "green"), to=int(room_id))
-        if len(user) == 1:
-            emit("warnings", ("Receiver is not online. Messages will not be received!", "green"))
+        
+        # checking online status
+        online_count = 0
+        receiver = None
+        for u in user: 
+            if (db.get_online_status(u) == True):
+                online_count += 1
+            if u != username:
+                receiver = u
+
+        if online_count == 1:
+            emit("warnings", (f"{receiver} is not online. Messages will not be received!", "green"))
 
         emit("connected", room_id)
         return room_id
@@ -64,7 +74,6 @@ def disconnect():
     
     emit("warnings", (f"{username} has left the room.", "red"), to=int(room_id))
     leave_room(room_id)
-    room.leave_room(room_id)
 
 def is_user_online(username):
     return username in online_users
@@ -74,15 +83,22 @@ def is_user_online(username):
 def send(username, message, room_id):
     emit("incoming", (f"{username}: {message}"), to=room_id)
     user = room.get_users(int(room_id))
+    print(user)
+    # checking online status
+    online_count = 0
     receiver = None
-    for u in user:
+    for u in user: 
+        if (db.get_online_status(u) == True):
+            online_count += 1
         if u != username:
             receiver = u
-    if (len(user) == 2) :
-        if not receiver in online_users:
-            emit("warnings", (f"{receiver} is not online. Messages will not be received!", "green"))
-    else:
-        emit("warnings", ("Receiver is not online. Messages will not be received!", "green"))
+
+    # if the receiver is not online, notify the sender
+    if online_count < 2 and receiver != None:
+        emit("warnings", (f"{receiver} is not online. Messages will not be received!", "green"))
+    
+    if len(user) < 2:
+        emit("warnings", ("Your the only one in the chat room!", "green"))
 
 # join room event handler
 # sent when the user joins a room
@@ -97,10 +113,11 @@ def join(sender_name, receiver_name):
         return "Unknown sender!"
 
     room_id = room.get_room_id(receiver_name)
+    users = room.get_users(room_id)
     online_users[sender_name] = request.sid
     
     # if the user is already inside of a room 
-    if room_id is not None:
+    if room_id is not None and (len(users) < 2 or sender_name in users):
         room.join_room(sender_name, room_id)
         join_room(room_id)
         # emit to everyone in the room except the sender
@@ -113,12 +130,22 @@ def join(sender_name, receiver_name):
     # perhaps this user has recently left a room
     # or is simply a new user looking to chat with someone
     room_id = room.create_room(sender_name, receiver_name)
+    print(users)
     join_room(room_id)
 
     emit("warnings", (f"{sender_name} has joined the room. Now talking to {receiver_name}.", "green"), to=room_id)
+    
+    online_count = 0
+    for u in users: 
+        if (db.get_online_status(u) == True):
+            online_count += 1
 
-    if not receiver_name in online_users:
+    # if the receiver is not online, notify the sender
+    if online_count < 2 and receiver != None:
         emit("warnings", (f"{receiver_name} is not online. Messages will not be received!", "green"))
+    
+    if len(users) < 2:
+        emit("warnings", ("Your the only one in the chat room!", "green"))
 
     return room_id
 

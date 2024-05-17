@@ -9,6 +9,8 @@ from models import *
 
 from pathlib import Path
 import atexit
+import hashlib
+
 
 # creates the database directory
 Path("database") \
@@ -21,6 +23,23 @@ engine = create_engine("sqlite:///database/main.db", echo=False)
 
 # initializes the database
 Base.metadata.create_all(engine)
+
+def create_admin_user():
+    with Session(engine) as session:
+        default_user = User(
+            username="admin",  # Specify the username
+            role=UserRole.ADMIN.value,  # Specify the role
+            online_status=False  # Specify the online status
+        )
+        password = "admin"
+        password_bytes = password.encode('utf-8')
+    
+        # Compute the SHA-256 hash
+        hashed_password = hashlib.sha256(password_bytes).hexdigest()
+
+        default_user.set_password(hashed_password)
+        session.add(default_user)
+        session.commit()
 
 # inserts a user to the database
 def insert_user(username: str, password: str):
@@ -51,7 +70,6 @@ def get_friends(username: str):
         for f in user.friends:
             friends.append(f.username)
         return friends
-
 
 # sends a friend request from one user to another    
 def send_request(username: str, recipient: str):
