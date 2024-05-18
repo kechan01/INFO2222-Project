@@ -10,32 +10,22 @@ import db
 import secrets
 import ssl
 import logging
-from models import EncryptedMessage
-
  
 # this turns off Flask Logging, uncomment this to turn off Logging
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
-
 app = Flask(__name__)
 
 # secret key used to sign the session cookie
-#creating a secret code for our Flask web application. the function at ateh right hand side is called to generate the secret code 
 app.config['SECRET_KEY'] = secrets.token_hex()
-#It's like a chatroom where the server can talk to your web app instantly, without needing to refresh the page
 socketio = SocketIO(app)
 
-
 # SSL certificate and private key paths
-certfile = '/Users/tannudahiya/Desktop/INFO2222/INFO2222-Project/certs/localhost.crt'
-keyfile = '/Users/tannudahiya/Desktop/INFO2222/INFO2222-Project/certs/localhost.key'
-
-
+#certfile = './certs/localhost.crt'
+#keyfile = './certs/localhost.key'
 # Create an SSL context with the certificate and private key
-# we're basically setting up the rules and protocols for our SSL secure tunnel to work.
-ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-#giving our server its ID card and secret key so that it can prove its identity to clients
-ssl_context.load_cert_chain(certfile, keyfile)
+#ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+#ssl_context.load_cert_chain(certfile, keyfile)
 
 # don't remove this!!
 import socket_routes
@@ -49,6 +39,13 @@ def index():
 @app.route("/login")
 def login():    
     return render_template("login.jinja")
+
+@app.route("/logout")
+def logout():    
+    username = session.get('username')
+   # db.change_online_status(username, False)
+    session.pop('username', default=None)
+    return redirect(url_for('login'))
 
 # handles a post request when the user clicks the log in button
 @app.route("/login/user", methods=["POST"])
@@ -66,6 +63,7 @@ def login_user():
         return "Error: Password does not match!"
 
     session['username'] = username  # Store username in session
+    #db.change_online_status(username, True) # Change user's online status to true
 
     return url_for('friends', username=request.json.get("username"))
 
@@ -84,8 +82,6 @@ def signup_user():
 
     if db.get_user(username) is None:
         db.insert_user(username, password)
-        #Create public key for the user
-        public_key = EncryptedMessage.create_public_key(username)
         return url_for('login')
     return "Error: User already exists!"
 
@@ -112,7 +108,7 @@ def chat():
         # Here you can perform any additional logic you need, such as checking if the friend exists, etc.
         return render_template("chat.jinja", username=username, friends=friends)
 
-@app.route("/friends")
+@app.route("/profile")
 def friends():
     if 'username' not in session:
         # Redirect to login if user is not authenticated
@@ -120,12 +116,12 @@ def friends():
     else:
         # Retrieve username from session
         username = session['username']
-
+        
         # Get friends for the authenticated user
         friends = db.get_friends(username)
         requests = db.get_requests(username)
 
-        return render_template("friends.jinja", username=username, friends=friends, requests=requests)
+        return render_template("profile.jinja", username=username, friends=friends, requests=requests)
 
 
 @app.route("/friends/add", methods=["POST"])
@@ -170,9 +166,6 @@ def heartbeat():
     return 'OK', 200
 
 if __name__ == '__main__':
-    socketio.run(app, host='127.0.0.1', port=5000, ssl_context=ssl_context)
-    app.run(ss1_context=('./certs/localhost.crt'
-'./certs/localhost.key'))
-
-
-  
+    #if db.get_user("admin") == None:
+        #db.create_admin_user()
+    socketio.run(app, host='127.0.0.1', port=5000)
