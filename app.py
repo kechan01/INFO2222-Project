@@ -132,8 +132,10 @@ def friends():
         # Get friends for the authenticated user
         friends = db.get_friends(username)
         requests = db.get_requests(username)
+        account_type = db.get_user_role(username)
 
-        return render_template("profile.jinja", username=username, friends=friends, requests=requests)
+        return render_template("profile.jinja", username=username, friends=friends, 
+                               requests=requests, account_type=account_type)
 
 
 @app.route("/friends/add", methods=["POST"])

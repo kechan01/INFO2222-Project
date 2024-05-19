@@ -19,6 +19,7 @@ Yeah I know it's pretty ugly...
   .topnav h1{ 
     color: white; 
     text-align: centre; 
+
     }
   
   /* Style the links inside the navigation bar */
@@ -43,56 +44,41 @@ Yeah I know it's pretty ugly...
     color: white;
     }
 
-* {
-        box-sizing: border-box;
+    #right{ 
+        width: 33.33%; 
+        float: right; 
     }
 
-    /* Create three unequal columns that floats next to each other */
-    .column {
-        float: left;
-        padding: 10px;
-    }
-    
-  /*buttons under the userprofile */ 
-    .left{
-    width: 25%;
-    text-align: left;
-    height: 100%
-
+    #left{ 
+        width: 33.33%; 
+        float: left; 
     }
 
-    .middle {
-        width: 25%;
-        text-align: center; 
-        height: 100%
+    #middle{ 
+        width: 33.33%; 
+        margin: 0 auto;
+        text-align: center;  
     }
 
-    .right{
-        width: 50%;
-        text-align: left; 
-        height: 100%
-    }
-    
-    /* Clear floats after the columns */
-    .row:after {
-        content: "";
-        display: table;
-        clear: both;
 
-    }
 
     .picture{ 
-        padding: 100px; 
+        padding: 60px; 
         border-width:3px; 
         border-style:solid; 
         border-color: black ; 
         background-color: darkgrey;
         color: white; 
-        border-radius: 100%;
+        border-radius: 60%;
     }
 .addnewfriend{ 
     text-align: center;
 }
+
+
+    .friend-item span {
+        margin-right: 20px; /* Adjust the value as needed */
+    }
 
 .container {
     display: flex; /* Use flexbox for layout */
