@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "encrypt-rsa": "^2.1.5"
+  }
+}

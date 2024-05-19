@@ -6,14 +6,7 @@
    
 
 <main>
-
-    <div class="column left">
-        <h2 class="picture"> profile picture </h2>
-        <h2>{{user.username}}</h2>
-        <button onclick="StudnentAccount()">StudentAccount</button> 
-        <button onclick="administration" > administration </button> 
-    </div>
-
+    <button onclick="logout()">Log out</button>
     <label for="fname"> Send friend request </label> 
     <input id="recipient">
     <button onclick="addFriend()">Add</button>
@@ -26,6 +19,10 @@
                 return true;
             }
             return false;
+        }
+
+        function logout() {
+            window.location.href = "logout";
         }
 
         async function addFriend() {

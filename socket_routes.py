@@ -15,10 +15,11 @@ except ImportError:
 from models import Room
 
 import db
-import hashlib
+import hashlib 
+from cryptography.hazmat.primitives.asymmetric import dh
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 
-room = Room()
-online_users = {}
 # Dictionary to store shared keys by room ID
 shared_keys = {}
 
@@ -32,16 +33,27 @@ def connect():
         return
     # socket automatically leaves a room on client disconnect
     # so on client connect, the room needs to be rejoined
-    online_users[username] = request.sid
 
     # if the user is already inside of a room 
     if room_id is not None:
         join_room(int(room_id))
-        user = room.get_users(int(room_id))
-        emit("incoming", (f"{username} has connected", "green"), to=int(room_id))
-        if len(user) == 1:
-            emit("incoming", ("Receiver is not online. Messages will not be received!", "green"))
+        emit("warnings", (f"{username} has connected", "green"), to=int(room_id))
+        
+        user = db.get_participants(room_id)
+        # checking online status
+        online_count = 0
+        receiver = None
+        for u in user: 
+            if (db.get_online_status(u) == True):
+                online_count += 1
+            if u != username:
+                receiver = u
+        if receiver == None:
+            emit("warnings", ("You are the only one in the chat!", "green"))
+        elif online_count == 1:
+            emit("warnings", (f"{receiver} is not online. Messages will not be received!", "green"))
 
+        emit("connected", room_id)
         return room_id
 
 
@@ -53,52 +65,32 @@ def disconnect():
     room_id = request.cookies.get("room_id")
     if room_id is None or username is None:
         return
-    
-    if username in online_users:
-        del online_users[username]  # Remove the user from the online list
-    
-    emit("incoming", (f"{username} has left the room.", "red"), to=int(room_id))
+        
+    emit("warnings", (f"{username} has left the room.", "red"), to=int(room_id))
     leave_room(room_id)
-
-def is_user_online(username):
-    return username in online_users
 
 # send message event handler
 @socketio.on("send")
 def send(username, message, room_id):
-    # Retrieve the private key from the request
-    private_key = request.cookies.get("privateKey")
-
-    shared_key = shared_keys.get(room_id)
-
-    # Calculate the MAC for the message using the shared key
-    calculated_mac = hashlib.sha256((message + shared_key).encode()).hexdigest()
-
-    # Retrieve the MAC sent by the client
-    client_mac = request.cookies.get("mac")
-
-    # Verify MAC
-    if calculated_mac == client_mac:
-        # MAC is valid, proceed to send the message
-        emit("incoming", (f"{username}: {message}"), to=room_id)
-    else:
-        # MAC is not valid, reject the message
-        emit("incoming", ("MAC verification failed. Message rejected.", "red"), to=request.sid)
-
-
-    user = room.get_users(int(room_id))
+    emit("incoming", (f"{username}: {message}"), to=room_id)
+    user = db.get_participants(room_id)
+    print(user)
+    # checking online status
+    online_count = 0
     receiver = None
-    for u in user:
+    for u in user: 
+        if (db.get_online_status(u) == True):
+            online_count += 1
         if u != username:
             receiver = u
 
-    if (len(user) == 2) :
-        if not receiver in online_users:
-            emit("incoming", (f"{receiver} is not online. Messages will not be received!", "green"))
-    else:
-        emit("incoming", ("Receiver is not online. Messages will not be received!", "green"))
-
+    # if the receiver is not online, notify the sender
+    if online_count < 2 and receiver != None:
+        emit("warnings", (f"{receiver} is not online. Messages will not be received!", "green"))
     
+    if len(user) < 2:
+        emit("warnings", ("Your the only one in the chat room!", "green"))
+
 # join room event handler
 # sent when the user joins a room
 @socketio.on("join")
@@ -111,67 +103,130 @@ def join(sender_name, receiver_name):
     if sender is None:
         return "Unknown sender!"
 
-    room_id = room.get_room_id(receiver_name)
-    online_users[sender_name] = request.sid
-
-    # if the user is already inside of a room 
-    if room_id is not None:
-        room.join_room(sender_name, room_id)
-        join_room(room_id)
-
-        # emit to everyone in the room except the sender
-        emit("incoming", (f"{sender_name} has joined the room.", "green"), to=room_id, include_self=False)
-        # emit only to the sender
-        emit("incoming", (f"{sender_name} has joined the room. Now talking to {receiver_name}.", "green"))
-        return int(room_id)
-
+    room_id = db.find_exclusive_room(sender_name, receiver_name)
     # if the user isn't inside of any room, 
     # perhaps this user has recently left a room
     # or is simply a new user looking to chat with someone
-    room_id = room.create_room(sender_name, receiver_name)
+
+    if (room_id is None):
+        if not db.create_room(sender_name, receiver_name, False):
+            print("Error: cannot create a room")
+            return
+        room_id = db.find_exclusive_room(sender_name, receiver_name)
+    
+    # emit to everyone in the room except the sender
+    emit("warnings", (f"{sender_name} has joined the room.", "green"), to=room_id, include_self=False)
+     # emit only to the sender
+    emit("warnings", (f"{sender_name} has joined the room. Now talking to {receiver_name}.", "green"))
+
+    # if the receiver is not online, notify the sender
+    if db.get_online_status(receiver_name) == False and receiver != None:
+        emit("warnings", (f"{receiver_name} is not online. Messages will not be received!", "green"))
+    
+    return int(room_id)
+
+@socketio.on("create_group")
+def create_group(username, chat_name):
+    room_id = db.get_room_id_by_name(chat_name)
+
+    if room_id is None:
+        if not db.create_room(username, chat_name, True):
+            print("Error: cannot create a group chat")
+            return
+        room_id = db.get_room_id_by_name(chat_name)
+        join_room(room_id)
+        # emit to everyone in the room except the sender
+        emit("warnings", (f"{username} has joined the room.", "green"), to=room_id, include_self=False)
+        # emit only to the sender
+        emit("warnings", (f"{username} has joined the room. You are the only one in {chat_name}!", "green"))
+        return int(room_id)
+    else:
+        print("Room name already exists!")
+        return None
+
+@socketio.on("join_group")
+def join_group(username, chat_name):
+    room_id = db.get_room_id_by_name(chat_name)
+    if room_id is None:
+        print("Room doesn't exist!")
+        return None
+
+    room_id = db.get_room_id_by_name(chat_name)
     join_room(room_id)
 
-    emit("incoming", (f"{sender_name} has joined the room. Now talking to {receiver_name}.", "green"), to=room_id)
+    if (not username in db.get_participants(room_id)):
+        db.add_participant(username, room_id)
 
-    if not receiver_name in online_users:
-        emit("incoming", (f"{receiver_name} is not online. Messages will not be received!", "green"))
-
-    return room_id
+    # emit to everyone in the room except the sender
+    emit("warnings", (f"{username} has joined the room.", "green"), to=room_id, include_self=False)
+    # emit only to the sender
+    emit("warnings", (f"{username} has joined the room. Now talking in {chat_name}.", "green"))
+    return int(room_id)
 
 # leave room event handler
 @socketio.on("leave")
 def leave(username, room_id):
-    if username in online_users:
-        del online_users[username]  # Remove the user from the online list
-
-    emit("incoming", (f"{username} has left the room.", "red"), to=room_id)
+    emit("warnings", (f"{username} has left the room.", "red"), to=room_id)
     leave_room(room_id)
-    room.leave_room(username)
+    db.delete_participant(username, room_id)
 
-def find_receiver(username, room_id):
-    users_in_room = rooms(room_id)
+@socketio.on("ask_receiver_public_key")
+def ask_receiver_public_key(room_id):
+    # emit to everyone in the room except the sender
+    emit("ask_receiver_public_key", (), to=room_id, include_self=False)
 
-    for user in users_in_room:
-        if username != user:
-            return username
+@socketio.on("send_receiver_public_key")
+def send_receiver_public_key(public_key, room_id):
+    # emit to everyone in the room except the sender
+    emit("send_receiver_public_key", public_key, to=room_id, include_self=False)
 
-    return
+@socketio.on("send_receiver_secret_key")
+def send_receiver_secret_key(secretKey, room_id):
+    # emit to everyone in the room except the sender
+    emit("send_receiver_secret_key", secretKey, to=room_id, include_self=False)
 
+@socketio.on("get_hashed_passwords")
+def get_hashed_passwords(sender_name, receiver_name):
+    sender_hashed_password = db.get_user(sender_name).password
+    receiver_hashed_password = db.get_user(receiver_name).password
+    return sender_hashed_password + receiver_hashed_password
 
-# Function to handle Diffie-Hellman key exchange
-@socketio.on("dh_key_exchange")
-def dh_key_exchange(public_key, room_id):
-    # Retrieve the client's public key
-    client_public_key = public_key
+@socketio.on("get_room_salt")
+def get_room_salt(room_id):
+    return room.get_room_salt(room_id)
 
-    # Retrieve the client's username
-    username = request.cookies.get("username")
+@socketio.on("store_encrypted_key")
+def store_encrypted_key(username, room_id, encryptedKey):
+    db.insert_encryption_key(username, room_id, encryptedKey)
+    db.get_encryption_key(username, room_id)
+    return True
 
-    # Retrieve the client's private key
-    client_private_key = db.get_private_key(username)
+@socketio.on("get_encrypted_key")
+def get_encrypted_key(username, room_id):
+    db.get_encryption_key(username, room_id)
+    return True
 
-    # Calculate the shared key using both public and private keys
-    shared_key = hashlib.sha256((client_private_key + client_public_key).encode()).hexdigest()
+@socketio.on("store_encrypted_message")
+def store_encrypted_message(room_id, encryptedMessage):
+    db.store_encrypted_message(room_id, encryptedMessage)
+    return True
 
-    # Store the shared key in the dictionary with room ID as the key
-    shared_keys[room_id] = shared_key
+@socketio.on("get_encrypted_messages")
+def get_encrypted_messages(room_id):
+    return db.retrieve_encrypted_messages(room_id)
+
+@socketio.on("send_mac")
+def send_mac(mac, room_id):
+    emit("send_mac", mac, to=room_id)
+
+@socketio.on("send_combined_key")
+def send_combined_key(combined_key, room_id):
+    emit("send_combined_key", combined_key, to=room_id, include_self=False)
+
+@socketio.on("request_combined_key")
+def request_combined_key(room_id):
+    emit("request_combined_key", to=room_id, include_self=False)
+
+@socketio.on("send_encrypt_message")
+def send_encrypt_message(mac, room_id):
+    emit("send_mac", mac, to=room_id)

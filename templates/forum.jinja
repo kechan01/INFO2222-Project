@@ -44,9 +44,12 @@ Your Page Title
 <div class="topnav">
     
     <h1 style="text-align: center">Academic Platform for Students</h1>
-    <h2 class ="active" style="text-align:left"> <a href="{{ url_for('logout') }}">Forum</a> </h2>
-    <a href="{{ url_for('chat') }}">Messaging</a>
-    <a href="{{ url_for('friends') }}">Profile</a>
+    <h2 style="text-align:left"> 
+    <a class="active" href="{{ url_for('forum', username=username) }}">Forum</a> 
+    <a href="{{ url_for('chat', username=username) }}">Messaging</a>
+    <a href="{{ url_for('friends', username=username) }}">Profile</a>
     <a href="{{ url_for('logout') }}">Logout</a>
-
+    </h2>
 </div>
+
+{% endblock %}

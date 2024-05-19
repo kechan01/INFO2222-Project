@@ -43,7 +43,7 @@ def login():
 @app.route("/logout")
 def logout():    
     username = session.get('username')
-   # db.change_online_status(username, False)
+    db.change_online_status(username, False)
     session.pop('username', default=None)
     return redirect(url_for('login'))
 
@@ -63,7 +63,7 @@ def login_user():
         return "Error: Password does not match!"
 
     session['username'] = username  # Store username in session
-    #db.change_online_status(username, True) # Change user's online status to true
+    db.change_online_status(username, True) # Change user's online status to true
 
     return url_for('friends', username=request.json.get("username"))
 
@@ -105,8 +105,16 @@ def chat():
 
         # Get the friend's username from the query parameter
         friends = db.get_friends(username)
+
+        # get all group chat rooms available 
+        chats = db.get_chat_room_names()
+
+        # get all group chat rooms available 
+        user_chats = db.get_user_chatrooms(username)
+
         # Here you can perform any additional logic you need, such as checking if the friend exists, etc.
-        return render_template("chat.jinja", username=username, friends=friends)
+        return render_template("chat.jinja", username=username, friends=friends, 
+                               chats=chats, user_chats=user_chats)
 
 @app.route("/profile")
 def friends():
@@ -120,8 +128,10 @@ def friends():
         # Get friends for the authenticated user
         friends = db.get_friends(username)
         requests = db.get_requests(username)
+        account_type = db.get_user_role(username)
 
-        return render_template("profile.jinja", username=username, friends=friends, requests=requests)
+        return render_template("profile.jinja", username=username, friends=friends, 
+                               requests=requests, account_type=account_type)
 
 
 @app.route("/friends/add", methods=["POST"])
@@ -160,12 +170,16 @@ def decline_friend_request():
     db.delete_requests(sender, username)
     return url_for('friends')
 
+@app.route("/forum")
+def forum():
+    return render_template("forum.jinja")
+
 @app.route('/heartbeat')
 def heartbeat():
     # Endpoint to indicate server is running
     return 'OK', 200
 
 if __name__ == '__main__':
-    #if db.get_user("admin") == None:
-        #db.create_admin_user()
-    socketio.run(app, host='127.0.0.1', port=5000)
+    if db.get_user("admin") == None:
+        db.create_admin_user()
+    socketio.run(app, host='127.0.0.1', port=5000, ssl_context=ssl_context)
