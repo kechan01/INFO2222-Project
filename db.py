@@ -3,13 +3,14 @@ db
 database file, containing all the logic to interface with the sql database
 '''
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, func
 from sqlalchemy.orm import Session
 from models import *
 
 from pathlib import Path
 import atexit
 import hashlib
+import secrets
 
 
 # creates the database directory
@@ -202,6 +203,126 @@ def retrieve_encrypted_messages(room_id: int):
             # Handle any exceptions
             print(f"Error occurred: {e}")
             return None  # Return None to indicate failure
+
+def create_room(username: str, receiver: str, group: bool):
+    with Session(engine) as session:
+        try:
+            user = session.get(User, username)
+            user2 = session.get(User, receiver)
+            if user is None:
+                print(f"Error: User '{username}' does not exist.")
+                return
+            
+            if user2 is None:
+                print(f"Error: receiver '{receiver}' does not exist.")
+                return
+
+            # Create a new Room object
+            new_room = Room(room_name=username)
+            new_room.room_salt = secrets.token_hex(16)
+
+            if (group):
+                new_room.is_group = True
+
+            session.add(new_room)
+            session.commit()
+            print("Room created successfully.")
+            add_participant(username, new_room.room_id)
+            add_participant(receiver, new_room.room_id)
+            return True
+        except Exception as e:
+            session.rollback()
+            print("An error occurred while creating the room:", e)
+            return None
+
+def add_participant(username: str, room_id: int):
+    # Assuming 'username' is the username of the participant
+    with Session(engine) as session:
+        # Query the User object by username
+        user = session.get(User, username)
+        room = session.get(Room, room_id)
+        if user and room:
+            # Add the user to the list of participants in the room
+            participant = Participant(username=username, room_id=room_id)
+            session.add(participant)
+            session.commit()
+            print(f"Participant '{username}' added to room '{room.room_name}'.")
+        else:
+            print(f"User or room not found.")
+
+def delete_participant(username: str, room_id: int):
+    with Session(engine) as session:
+        try:
+            # Query the Room object by room_id
+            room = session.query(Room).filter_by(room_id=room_id).first()
+            if room:
+                # Query the User object by username
+                user = session.query(User).filter_by(username=username).first()
+                if user:
+                    # Check if the user is a participant in the room
+                    if user in room.participants:
+                        # Remove the user from the list of participants
+                        room.participants.remove(user)
+                        session.commit()
+                        print(f"Participant '{username}' deleted from room ID {room_id}.")
+                        return True
+                    else:
+                        print(f"Participant '{username}' is not in room ID {room_id}.")
+                        return False
+                else:
+                    print(f"User '{username}' not found.")
+                    return False
+            else:
+                print("Room not found.")
+                return False
+        except Exception as e:
+            session.rollback()
+            print("An error occurred while deleting participant:", e)
+            return False
+        
+def get_participants(room_id: int):
+    with Session(engine) as session:
+        try:
+            # Query the Room object by room_id
+            room = session.query(Room).filter_by(room_id=room_id).first()
+            if room:
+                # Return the list of participants' usernames
+                return [participant.username for participant in room.participants]
+            else:
+                print("Room not found.")
+                return None
+        except Exception as e:
+            print("An error occurred while retrieving participants:", e)
+            return None
+
+def find_exclusive_room(user1: str, user2: str):
+    with Session(engine) as session:
+        try:
+            # Subquery to get the room IDs where both users are participants
+            subquery = (
+                session.query(Participant.room_id)
+                .filter(Participant.username.in_([user1, user2]))
+                .group_by(Participant.room_id)
+                .having(func.count(Participant.room_id) == 2)
+                .subquery()
+            )
+
+            # Query rooms where only the two specified users are participants
+            rooms = (
+                session.query(Room)
+                .join(subquery, Room.room_id == subquery.c.room_id)
+                .filter(Room.is_group == False)
+                .all()
+            )
+            
+            if rooms:
+                return rooms[0].room_id  # Return the first exclusive room found
+            else:
+                print(f"No exclusive room found for users '{user1}' and '{user2}'.")
+                return None
+        except Exception as e:
+            print("An error occurred while finding an exclusive room:", e)
+            return None
 
 def change_online_status(username: str, new_status: bool):
     with Session(engine) as session:

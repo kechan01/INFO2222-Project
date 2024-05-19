@@ -24,12 +24,12 @@ socketio = SocketIO(app)
 
 
 # SSL certificate and private key paths
-#certfile = './certs/localhost.crt'
-#keyfile = './certs/localhost.key'
+certfile = './certs/localhost.crt'
+keyfile = './certs/localhost.key'
 
 # Create an SSL context with the certificate and private key
-#ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-#ssl_context.load_cert_chain(certfile, keyfile)
+ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+ssl_context.load_cert_chain(certfile, keyfile)
 
 # don't remove this!!
 import socket_routes
