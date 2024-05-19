@@ -70,6 +70,12 @@ Your Page Title
     text-align: center;
 }
 
+
+    .friend-item span {
+        margin-right: 20px; /* Adjust the value as needed */
+    }
+
+
 </style> 
 
 <div class="topnav">
@@ -93,24 +99,33 @@ Your Page Title
     <input type="text" id="newFriend" placeholder="Enter friend's name">
     <button onclick="addFriend()">Add Friend</button>
     <h2>Friends list</h2>
-        <ul>
-        {% for friend in friends %}
-            <li>{{ friends.name }}</li>
-        {% endfor %}
-    </ul>
-
-     <ul id="list"></ul>
-
+        <ul id="list"></ul> 
     <script>
-        let list = document.getElementById('list');
-        // Append the button to the list item
-        for (let i = 0; i < {{ friends }}.length; i++) {
-            let li = document.createElement('li');
-            li.textContent = {{ friends }}[i];  
+    let list = document.getElementById('list');
+    let friends = {{ friends | tojson }};
 
-            list.appendChild(li);
-        }
-    </script> 
+    // Append the button to the list item
+    for (let i = 0; i < friends.length; i++) {
+        let li = document.createElement('li');
+        li.classList.add('friend-item'); // Add a class for styling
+
+        // Create a span to hold the friend's name
+        let span = document.createElement('span');
+        span.textContent = friends[i];
+        li.appendChild(span);
+
+        // Create the remove button
+        let removeButton = document.createElement('button');
+        removeButton.textContent = 'Remove';
+        removeButton.onclick = function() {
+            list.removeChild(li);
+        };
+        li.appendChild(removeButton);
+
+        // Append the list item to the list
+        list.appendChild(li);
+    }
+</script>
 
     <!-- Script for adding a new friend -->
     <script>
