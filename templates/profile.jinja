@@ -39,52 +39,32 @@ Your Page Title
     color: white;
     }
 
-* {
-        box-sizing: border-box;
+    #right{ 
+        width: 33.33%; 
+        float: right; 
     }
 
-    /* Create three unequal columns that floats next to each other */
-    .column {
-        float: left;
-        padding: 10px;
-    }
-    
-  /*buttons under the userprofile */ 
-    .left{
-    width: 25%;
-    text-align: left;
-    height: 100%
-
+    #left{ 
+        width: 33.33%; 
+        float: left; 
     }
 
-    .middle {
-        width: 25%;
-        text-align: center; 
-        height: 100%
+    #middle{ 
+        width: 33.33%; 
+        margin: 0 auto;
+        text-align: center;  
     }
 
-    .right{
-        width: 50%;
-        text-align: left; 
-        height: 100%
-    }
-    
-    /* Clear floats after the columns */
-    .row:after {
-        content: "";
-        display: table;
-        clear: both;
 
-    }
 
     .picture{ 
-        padding: 100px; 
+        padding: 60px; 
         border-width:3px; 
         border-style:solid; 
         border-color: black ; 
         background-color: darkgrey;
         color: white; 
-        border-radius: 100%;
+        border-radius: 60%;
     }
 .addnewfriend{ 
     text-align: center;
@@ -100,21 +80,27 @@ Your Page Title
     <a class="active" href="{{ url_for('friends') }}">Profile</a>
     <a href="{{ url_for('logout') }}">Logout</a>
 </div>
-<div class="row">
-<div class="column left">
+<!--  <div class="row"> --> 
+<div id="left">
     <h2 class="picture">Profile picture</h2>
     <h2 style="text-align: center">{{ username }}</h2>
+    <h2> <button style="background-color: darkgrey"> Administration </button> </h2> 
 </div>
 
-<div class="column middle">
-    <ul>
+<div id="middle">
+
+    <h2 class="addnewfriend">To add new friend</h2>
+    <input type="text" id="newFriend" placeholder="Enter friend's name">
+    <button onclick="addFriend()">Add Friend</button>
+    <h2>Friends list</h2>
+        <ul>
         {% for friend in friends %}
             <li>{{ friends.name }}</li>
         {% endfor %}
     </ul>
 
      <ul id="list"></ul>
-     
+
     <script>
         let list = document.getElementById('list');
         // Append the button to the list item
@@ -124,17 +110,10 @@ Your Page Title
 
             list.appendChild(li);
         }
+    </script> 
 
-
-    <h2 class="addnewfriend">To add new friend</h2>
-    <input type="text" id="newFriend" placeholder="Enter friend's name">
-    <button onclick="addFriend()">Add Friend</button>
-    <h2>Friends list</h2>
-</div>
-</div>
-
-<!-- Script for adding a new friend -->
-<script>
+    <!-- Script for adding a new friend -->
+    <script>
     function isValidURL(string) {
         if (string.length == 0) {
             return false;
@@ -159,19 +138,19 @@ Your Page Title
 
         window.open(res.data, "_self");
     }
-</script>
+    </script>
  
-<!-- section for sending and receiving friend request --> 
- <h1>Friend Requests</h1>
-    <ul id="friend-requests">
-        <!-- Display pending friend requests here -->
-        {% for request in requests %}
-            <li>{{ request }} sent you a friend request 
-                <button onclick="acceptFriendRequest('{{ request }}')">Accept</button>
-                <button onclick="declineFriendRequest('{{ request }}')">Decline</button>
-            </li>
-        {% endfor %}
-    </ul>
+    <!-- section for sending and receiving friend request --> 
+    <h2>Friend Requests</h2>
+        <ul id="friend-requests">
+            <!-- Display pending friend requests here -->
+            {% for request in requests %}
+                <li>{{ request }} sent you a friend request 
+                    <button onclick="acceptFriendRequest('{{ request }}')">Accept</button>
+                    <button onclick="declineFriendRequest('{{ request }}')">Decline</button>
+                </li>
+            {% endfor %}
+        </ul>
 
     <script type="text/javascript">
         // Function to handle accepting friend requests
@@ -212,5 +191,12 @@ Your Page Title
             alert("Friend request from " + sender + " declined successfully!");
         }
     </script>
+</div> 
+
+
+    <!-- section for the article section --> 
+<div id="right"> 
+    <h2> Summary of your Articles</h2> 
+</div> 
 
 {% endblock %}
