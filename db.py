@@ -255,6 +255,23 @@ def get_room_id_by_name(room_name: str):
             print("An error occurred while retrieving room_id by room_name:", e)
             return None
 
+def get_user_chatrooms(username: str):
+    with Session(engine) as session:
+        try:
+            # Query all chatrooms where the user is a participant
+            user_chatrooms = (
+                session.query(Room)
+                .join(Participant, Participant.room_id == Room.room_id)
+                .join(User, User.username == Participant.username)
+                .filter(User.username == username)
+                .all()
+            )
+            # Extract room names from the query result
+            return [chatroom.room_name for chatroom in user_chatrooms]
+        except Exception as e:
+            print("An error occurred while retrieving user's chatrooms:", e)
+            return None
+
 def get_chat_room_names():
     with Session(engine) as session:
         try:

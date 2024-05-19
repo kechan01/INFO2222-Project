@@ -113,8 +113,12 @@ def chat():
         # get all group chat rooms available 
         chats = db.get_chat_room_names()
 
+        # get all group chat rooms available 
+        user_chats = db.get_user_chatrooms(username)
+
         # Here you can perform any additional logic you need, such as checking if the friend exists, etc.
-        return render_template("chat.jinja", username=username, friends=friends, chats=chats)
+        return render_template("chat.jinja", username=username, friends=friends, 
+                               chats=chats, user_chats=user_chats)
 
 @app.route("/friends")
 def friends():
@@ -167,6 +171,10 @@ def decline_friend_request():
 
     db.delete_requests(sender, username)
     return url_for('friends')
+
+@app.route("/forum")
+def forum():
+    return render_template("forum.jinja")
 
 @app.route('/heartbeat')
 def heartbeat():

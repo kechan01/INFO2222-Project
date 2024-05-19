@@ -26,9 +26,9 @@
     
     <h1 style="text-align: center">Academic Platform for Students</h1>
     <h2 style="text-align:left"> 
-    <a href="{{ url_for('logout') }}">Forum</a> 
+    <a href="{{ url_for('forum', username=username) }}">Forum</a> 
     <a class="active" href="{{ url_for('chat', username=username) }}">Messaging</a>
-    <a href="{{ url_for('friends') }}">Profile</a>
+    <a href="{{ url_for('friends', username=username) }}">Profile</a>
     <a href="{{ url_for('logout') }}">Logout</a>
     </h2>
     <h2 style="text-align:right; color: white; padding-right: 20px;"> Username: {{ username }}  </h2>
@@ -84,6 +84,13 @@
         </div>
         <div class="right-section">
             <!-- Content for the right section goes here -->
+            <h2>Your Chat Rooms</h2>
+            <ol>
+            {% for chat in user_chats %}
+                <li>{{ chat }}</li>
+            {% endfor %}
+            </ol>
+
         </div>
     </div>
 
@@ -228,7 +235,8 @@
         sessionStorage.setItem("sharedKey", sharedKey);
         console.log("Shared key: " + sharedKey);
     });    
-
+    
+    
     // Function to generate a random secret key
     function generateSecretKey() {
         // Define the length of the key in bytes (e.g., 16 bytes for a 128-bit key)
