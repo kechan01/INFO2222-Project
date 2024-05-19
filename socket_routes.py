@@ -48,8 +48,9 @@ def connect():
                 online_count += 1
             if u != username:
                 receiver = u
-
-        if online_count == 1:
+        if receiver == None:
+            emit("warnings", ("You are the only one in the chat!", "green"))
+        elif online_count == 1:
             emit("warnings", (f"{receiver} is not online. Messages will not be received!", "green"))
 
         emit("connected", room_id)
@@ -112,22 +113,54 @@ def join(sender_name, receiver_name):
             print("Error: cannot create a room")
             return
         room_id = db.find_exclusive_room(sender_name, receiver_name)
-        join_room(room_id)
-        # emit to everyone in the room except the sender
-        emit("warnings", (f"{sender_name} has joined the room.", "green"), to=room_id, include_self=False)
-        # emit only to the sender
-        emit("warnings", (f"{sender_name} has joined the room. Now talking to {receiver_name}.", "green"))
-    else:
-        join_room(room_id)
-        emit("warnings", (f"{sender_name} has joined the room.", "green"), to=room_id, include_self=False)
-        # emit only to the sender
-        emit("warnings", (f"{sender_name} has joined the room. Now talking to {receiver_name}.", "green"))
     
+    # emit to everyone in the room except the sender
+    emit("warnings", (f"{sender_name} has joined the room.", "green"), to=room_id, include_self=False)
+     # emit only to the sender
+    emit("warnings", (f"{sender_name} has joined the room. Now talking to {receiver_name}.", "green"))
 
     # if the receiver is not online, notify the sender
     if db.get_online_status(receiver_name) == False and receiver != None:
         emit("warnings", (f"{receiver_name} is not online. Messages will not be received!", "green"))
     
+    return int(room_id)
+
+@socketio.on("create_group")
+def create_group(username, chat_name):
+    room_id = db.get_room_id_by_name(chat_name)
+
+    if room_id is None:
+        if not db.create_room(username, chat_name, True):
+            print("Error: cannot create a group chat")
+            return
+        room_id = db.get_room_id_by_name(chat_name)
+        join_room(room_id)
+        # emit to everyone in the room except the sender
+        emit("warnings", (f"{username} has joined the room.", "green"), to=room_id, include_self=False)
+        # emit only to the sender
+        emit("warnings", (f"{username} has joined the room. You are the only one in {chat_name}!", "green"))
+        return int(room_id)
+    else:
+        print("Room name already exists!")
+        return None
+
+@socketio.on("join_group")
+def join_group(username, chat_name):
+    room_id = db.get_room_id_by_name(chat_name)
+    if room_id is None:
+        print("Room doesn't exist!")
+        return None
+
+    room_id = db.get_room_id_by_name(chat_name)
+    join_room(room_id)
+
+    if (not username in db.get_participants(room_id)):
+        db.add_participant(username, room_id)
+
+    # emit to everyone in the room except the sender
+    emit("warnings", (f"{username} has joined the room.", "green"), to=room_id, include_self=False)
+    # emit only to the sender
+    emit("warnings", (f"{username} has joined the room. Now talking in {chat_name}.", "green"))
     return int(room_id)
 
 # leave room event handler

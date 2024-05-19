@@ -6,10 +6,6 @@
 
 {% block content %} 
    <style>
-    nav {
-        border-bottom: 1px solid black;
-        overflow: auto
-    }
 
     #message_box {
         border: 1px solid black; 
@@ -26,37 +22,71 @@
 
 </style>
 
-<!--Navbar, you'll see the username here-->
-<nav style="border-bottom: 1px solid black;">
-    <ol style="float: right">
-        <li style="display:inline-block">Username:  {{ username }} </li>
-    </ol>
-</nav>
+<div class="topnav">
+    
+    <h1 style="text-align: center">Academic Platform for Students</h1>
+    <h2 style="text-align:left"> 
+    <a href="{{ url_for('logout') }}">Forum</a> 
+    <a class="active" href="{{ url_for('chat', username=username) }}">Messaging</a>
+    <a href="{{ url_for('friends') }}">Profile</a>
+    <a href="{{ url_for('logout') }}">Logout</a>
+    </h2>
+    <h2 style="text-align:right; color: white; padding-right: 20px;"> Username: {{ username }}  </h2>
 
-<h1>Messaging App </h1>
+</div>
 
 <main>
-    <!-- The messages are displayed here -->
-    <section id="message_box"></section>
+    <div class="container">
+        <div class="left-section">
+            <!-- Content for the left section goes here -->
+            <h2>Chat Room</h2>
+            <p>This is the content of the left section.</p>
+            <!-- The messages are displayed here -->
+            <section id="message_box"></section>
 
-    <!-- These part ideally should be a form element, 
-    but I wrote this code a year ago and I don't want to break anything...-->
-    <section id="chat_box">
-        <p class="text">Chat with: </p>
-        <input id="receiver" placeholder="username">
-        <!-- MDN says its bad practice to use the onclick attribute,
-        but we're using it anyways coz its easy :)-->
-        <button onclick="join_room()">Chat</button>
-    </section>
+            <!-- These part ideally should be a form element, 
+            but I wrote this code a year ago and I don't want to break anything...-->
+            <section id="chat_box">
+                <p class="text">Chat with: </p>
+                <input id="receiver" placeholder="username">
+                <!-- MDN says its bad practice to use the onclick attribute,
+                but we're using it anyways coz its easy :)-->
+                <button onclick="join_room()">Chat</button>
+            </section>
 
-    <!-- The (message) input box is set to display: none initially, 
-    this means the input box is "invisible" initially-->
-    <section id="input_box" style="display: none" >
-        <p class="text">Message: </p>
-        <input id="message" placeholder="message">
-        <button onclick="send()">Send</button>
-        <button onclick="leave()">Leave Room</button>
-    </section>
+            <section id="group_chat_box">
+                <p class="text">Join/Create Group Chat: </p>
+                <input id="groupName" placeholder="groupchat name">
+                <!-- MDN says its bad practice to use the onclick attribute,
+                but we're using it anyways coz its easy :)-->
+                <button onclick="joinGroupChat()">Join</button>
+                <button onclick="createGroupChat()">Create</button>
+            </section>
+
+
+            <!-- The (message) input box is set to display: none initially, 
+            this means the input box is "invisible" initially-->
+            <section id="input_box" style="display: none" >
+                <p class="text">Message: </p>
+                <input id="message" placeholder="message">
+                <button onclick="send()">Send</button>
+                <button onclick="leave()">Leave Room</button>
+            </section>
+
+            <section id="group_input" style="display: none" >
+                <p class="text">Message: </p>
+                <input id="groupMessage" placeholder="message">
+                <button onclick="send_group()">Send</button>
+                <button onclick="leave()">Leave Room</button>
+            </section>
+
+
+        </div>
+        <div class="right-section">
+            <!-- Content for the right section goes here -->
+        </div>
+    </div>
+
 </main>
 
 <script src="/static/js/libs/socket.io.min.js"></script>
@@ -93,7 +123,13 @@
         // the user has already joined an existing room
         // we'll display the message box, instead of the "Chat with: " box
         $("#chat_box").hide();
-        $("#input_box").show();
+        $("#group_chat_box").hide();
+
+        if (sessionStorage.getItem("group") == false){
+            $("#input_box").show();
+        } else {
+            $("#group_input").show();
+        }
         room_id = parseInt(Cookies.get("room_id"));
         
         // Generate RSA key pair
@@ -153,7 +189,13 @@
     });
 
     socket.on("connected", (room_id) => {
-        displayMessageHistory(room_id);
+        if (sessionStorage.getItem("group") == false) {
+            displayMessageHistory(room_id);
+        } else {
+            console.log("HEREEE");
+            displayMessageHistoryNE(room_id);
+        }
+        
     });
 
     socket.on("send_mac", (mac_from_sender) => {
@@ -266,6 +308,13 @@
         socket.emit("store_encrypted_message", room_id, encryptedMessage);  
     } 
 
+    function send_group() {
+        let message = $("#groupMessage").val();
+        $("#groupMessage").val("");
+        socket.emit("send", username, message, room_id);  
+        const userAndMessage = username + ": " + message;
+        socket.emit("store_encrypted_message", room_id, userAndMessage);  
+    } 
 
     // we emit a join room event to the server to join a room
     function join_room() {        
@@ -294,6 +343,7 @@
 
             // now we'll show the input box, so the user can input their message
             $("#chat_box").hide();
+            $("#group_chat_box").hide();
             $("#input_box").show();
 
             // generate the secret key for message encryption
@@ -339,10 +389,61 @@
                 });
 
             }
+            sessionStorage.setItem("group", false);
+            displayMessageHistory(room_id);
         })
-
-        displayMessageHistory(room_id);
     }
+
+    function createGroupChat() {
+        let roomName = $("#groupName").val();
+        if ({{ chats }}.includes(roomName)) {
+            alert("Group chat name already exists!");
+            return;
+        }
+
+        socket.emit("create_group", username, roomName, (res) => {
+            if (typeof res != "number") {
+                alert(res);
+                return;
+            }
+
+            // set the room id variable to the room id returned by the server
+            room_id = res;
+            Cookies.set("room_id", room_id);
+
+            // now we'll show the input box, so the user can input their message
+            $("#chat_box").hide();
+            $("#group_chat_box").hide();
+            $("#group_input").show();
+        })
+        sessionStorage.setItem("group", true);
+    }
+
+    function joinGroupChat() {
+        let roomName = $("#groupName").val();
+        if (!{{ chats }}.includes(roomName)) {
+            alert("Group chat doesn't exist!");
+            return;
+        }
+
+        socket.emit("join_group", username, roomName, (res) => {
+            if (typeof res != "number") {
+                alert(res);
+                return;
+            }
+
+            // set the room id variable to the room id returned by the server
+            room_id = res;
+            Cookies.set("room_id", room_id);
+            // now we'll show the input box, so the user can input their message
+            $("#chat_box").hide();
+            $("#group_chat_box").hide();
+            $("#group_input").show();
+            sessionStorage.setItem("group", true);
+            displayMessageHistoryNE(room_id);
+        })
+    }
+
 
     function displayMessageHistory(roomId) {
         console.log("Displaying message history!");
@@ -355,6 +456,16 @@
         });
     }
 
+    function displayMessageHistoryNE(roomId) {
+        console.log("Displaying message history!");
+        socket.emit('get_encrypted_messages', roomId, (encrypted_messages) => {
+            // Once message history is received from the server, display it in the UI
+            encrypted_messages.forEach((message) => {
+                add_message(message, "grey"); // Assuming message contains text and color
+            });
+        });
+    }
+    
     // deriving message encryption key
     function deriveMessageEncryptionKey(hashedPassword, salt) {
         // Convert the password and salt to WordArrays
@@ -424,7 +535,10 @@
         sessionStorage.removeItem("secretKey");
         socket.emit("leave", username, room_id);
         $("#input_box").hide();
+        $("#group_input").hide();
+
         $("#chat_box").show();
+        $("#group_chat_box").show();
     }
 
     // function to add a message to the message box

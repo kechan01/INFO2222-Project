@@ -118,7 +118,7 @@ class Room(Base):
     __tablename__ = "room"
 
     room_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    room_name: Mapped[str] = mapped_column(String)
+    room_name: Mapped[str] = mapped_column(String, unique=True)
     is_group: Mapped[bool] = mapped_column(Boolean, default=False)
     participants = relationship("Participant", backref="room")
     room_salt: Mapped[str] = mapped_column(String)

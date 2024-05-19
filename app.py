@@ -109,8 +109,12 @@ def chat():
 
         # Get the friend's username from the query parameter
         friends = db.get_friends(username)
+
+        # get all group chat rooms available 
+        chats = db.get_chat_room_names()
+
         # Here you can perform any additional logic you need, such as checking if the friend exists, etc.
-        return render_template("chat.jinja", username=username, friends=friends)
+        return render_template("chat.jinja", username=username, friends=friends, chats=chats)
 
 @app.route("/friends")
 def friends():
@@ -125,7 +129,7 @@ def friends():
         friends = db.get_friends(username)
         requests = db.get_requests(username)
 
-        return render_template("friends.jinja", username=username, friends=friends, requests=requests)
+        return render_template("profile.jinja", username=username, friends=friends, requests=requests)
 
 
 @app.route("/friends/add", methods=["POST"])

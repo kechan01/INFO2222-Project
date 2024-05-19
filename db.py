@@ -208,31 +208,62 @@ def create_room(username: str, receiver: str, group: bool):
     with Session(engine) as session:
         try:
             user = session.get(User, username)
-            user2 = session.get(User, receiver)
             if user is None:
                 print(f"Error: User '{username}' does not exist.")
                 return
-            
-            if user2 is None:
-                print(f"Error: receiver '{receiver}' does not exist.")
-                return
 
-            # Create a new Room object
-            new_room = Room(room_name=username)
-            new_room.room_salt = secrets.token_hex(16)
+            if (not group):
+                user2 = session.get(User, receiver)
+                
+                if user2 is None and not group:
+                    print(f"Error: receiver '{receiver}' does not exist.")
+                    return
 
-            if (group):
+                # Create a new Room object
+                new_room = Room(room_name=(username+receiver))
+            else:
+                new_room = Room(room_name=receiver)
                 new_room.is_group = True
+
+            new_room.room_salt = secrets.token_hex(16)                
 
             session.add(new_room)
             session.commit()
             print("Room created successfully.")
             add_participant(username, new_room.room_id)
-            add_participant(receiver, new_room.room_id)
+
+            if (not group):
+                add_participant(receiver, new_room.room_id)
             return True
         except Exception as e:
             session.rollback()
             print("An error occurred while creating the room:", e)
+            return None
+
+def get_room_id_by_name(room_name: str):
+    with Session(engine) as session:
+        try:
+            # Query the Room object by room_name
+            room = session.query(Room).filter_by(room_name=room_name).first()
+            if room:
+                # Return the room_id if the room is found
+                return room.room_id
+            else:
+                print(f"Room with name '{room_name}' not found.")
+                return None
+        except Exception as e:
+            print("An error occurred while retrieving room_id by room_name:", e)
+            return None
+
+def get_chat_room_names():
+    with Session(engine) as session:
+        try:
+            # Query all room names
+            room_names = session.query(Room.room_name).all()
+            # Extract the room names from the query result
+            return [name[0] for name in room_names]
+        except Exception as e:
+            print("An error occurred while retrieving chat room names:", e)
             return None
 
 def add_participant(username: str, room_id: int):
