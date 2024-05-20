@@ -69,4 +69,33 @@ Your Page Title
 <button onclick="filter.jinja"> Filter article by category </button>
 </div>
 
+<h2>ARTICLES</h2>
+    <ul id="article"></ul> 
+    <script>
+    let article = document.getElementById('article');
+    //let articles = {{ articles | tojson }};
+
+    // Append the button to the list item
+    for (let i = 0; i < articles.length; i++) {
+        let li = document.createElement('li');
+        li.classList.add('article-name'); // Add a class for styling
+
+        // Create a span to hold the friend's name
+        let span = document.createElement('span');
+        span.textContent = articles[i];
+        li.appendChild(span);
+
+        // Create the remove button
+        let openbutton = document.createElement('button');
+        openbutton.textContent = 'Open';
+        li.appendChild(openbutton);
+        removeButton.onclick ;
+
+        // Append the list item to the list
+        list.appendChild(li);
+    }
+</script>
+
+<!-- things will happen when user click on the article -->
+
 {% endblock %}
