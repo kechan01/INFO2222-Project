@@ -207,6 +207,39 @@ Your Page Title
             alert("Unmuted user!");
         }
 
+        // Function to handle muting a user
+        async function muteUserChat() {
+            let usernameToMute = prompt("Enter the username to mute:");
+            if (usernameToMute === null || usernameToMute === "") {
+                alert("Please enter a valid username.");
+                return;
+            }
+            let muteUserURL = "{{ url_for('mute_user_chat') }}";
+            let res = await axios.post(muteUserURL, {
+                user: usernameToMute,
+            });
+            // Reload the page after accepting the request
+            location.reload();
+            alert("Muted user!");
+            
+        }
+
+        // Function to handle unmuting a user
+        async function unmuteUserChat() {
+            let usernameToMute = prompt("Enter the username to mute:");
+            if (usernameToMute === null || usernameToMute === "") {
+                alert("Please enter a valid username.");
+                return;
+            }
+            let muteUserURL = "{{ url_for('unmute_user_chat') }}";
+            let res = await axios.post(muteUserURL, {
+                user: usernameToMute,
+            });
+            // Reload the page after accepting the request
+            location.reload();
+            alert("Unmuted user!");
+        }
+
     </script>
 </div> 
 

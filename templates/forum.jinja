@@ -151,7 +151,7 @@ Your Page Title
             <tbody>
                 <!-- Loop through articles and display details as rows -->
                 {% for article in articles %}
-                <tr class="article-row" onclick="showArticleDetails('{{ article.title }}', '{{ article.author_id }}', '{{ article.date_posted.strftime('%Y-%m-%d %H:%M:%S') }}', '{{ article.category }}', '{{ article.content }}')">
+                <tr class="article-row" onclick="showArticleDetails('{{ article.article_id }}', '{{ article.title }}', '{{ article.author_id }}', '{{ article.date_posted.strftime('%Y-%m-%d %H:%M:%S') }}', '{{ article.category }}', '{{ article.content }}')">
                     <td style="color: blue;">{{ article.title }}</td>
                     <td style="padding: 5px;"> By {{ article.author_id }} </td>
                     <td style="padding: 5px;"> Date: {{ article.date_posted.strftime('%Y-%m-%d %H:%M:%S') }}</td>
@@ -159,7 +159,7 @@ Your Page Title
                     {% if account_type == 'staff' or account_type == 'academic' or account_type == 'admin' or article.author_id == username %}
                         <td>
                             <button class="delete-button" onclick="deleteArticle('{{ article.article_id }}')">Delete</button>
-                            <button class="modify-button" onclick="modifyArticl e('{{ article.article_id }}', '{{ article.content }}')">Modify</button>
+                            <button class="modify-button" onclick="modifyArticle('{{ article.article_id }}', '{{ article.content }}')">Modify</button>
                         </td>
                     {% endif %}
                 </tr>
@@ -202,7 +202,7 @@ Your Page Title
 
 <script>
     // Function to show article details and content
-    function showArticleDetails(title, author, datePosted, category, content) {
+    async function showArticleDetails(articleId, title, author, datePosted, category, content) {
         // Construct HTML for article details and content
         var articleDetailsHTML = '<div id="article-details" class="article-details">';
         articleDetailsHTML += '<h2><span style="color: blue;">' + title + '</span></h2>';

@@ -288,6 +288,18 @@ def unmute_user():
     db.mute_user_post(user, True)
     return url_for('friends')
 
+@app.route("/friends/mutechat", methods=["POST"])
+def mute_user_chat():
+    user = request.json.get("user")
+    db.mute_user_chat(user, False)
+    return url_for('friends')
+
+@app.route("/friends/unmutechat", methods=["POST"])
+def unmute_user_chat():
+    user = request.json.get("user")
+    db.mute_user_chat(user, True)
+    return url_for('friends')
+
 
 @app.route('/heartbeat')
 def heartbeat():
