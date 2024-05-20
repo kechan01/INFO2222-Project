@@ -25,6 +25,11 @@ Your Page Title
     <h2 style="text-align: center"> <button style="background-color: darkgrey"> Administration </button> </h2> 
 </div>
 
+<!-- section for the article section --> 
+<div id="right"> 
+    <h2> Summary of your Articles</h2> 
+</div> 
+
 <div id="middle">
 
     <h2 class="addnewfriend">To add new friend</h2>
@@ -49,7 +54,20 @@ Your Page Title
         // Create the remove button
         let removeButton = document.createElement('button');
         removeButton.textContent = 'Remove';
-        removeButton.onclick = function() {
+        removeButton.onclick = async function() {
+            let removeFriendURL = "{{ url_for('remove_friend')}}";
+            let friend = friends[i]
+            let res = await axios.post(removeFriendURL, {
+                friend: friend,
+            });
+
+            if (!isValidURL(res.data)) {
+                alert(res.data);
+                return;
+            }
+
+            window.open(res.data, "_self");
+
             list.removeChild(li);
         };
         li.appendChild(removeButton);
@@ -141,9 +159,5 @@ Your Page Title
 </div> 
 
 
-    <!-- section for the article section --> 
-<div id="right"> 
-    <h2> Summary of your Articles</h2> 
-</div> 
 
 {% endblock %}

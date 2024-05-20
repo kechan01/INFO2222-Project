@@ -152,6 +152,22 @@ def add_friend():
             return "Error: recipient invalid"
     return url_for('friends')
 
+@app.route("/friends/remove", methods=["POST"])
+def remove_friend():
+    if not request.is_json:
+        abort(404)
+    friend = request.json.get("friend")
+    username = session.get('username')  # Retrieve username from session
+
+    if db.get_user(friend) is None or friend == username:
+        return "Error: recipient invalid"
+    else:
+        if db.remove_friend(username, friend) == None:
+            return "Error: recipient invalid"
+        elif db.remove_friend(friend, username) == None:
+            return "Error: recipient invalid"
+    return url_for('friends')
+
 @app.route("/friends/accept", methods=["POST"])
 def accept_friend_request():
     if not request.is_json:

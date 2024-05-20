@@ -63,6 +63,24 @@ def insert_friend(username: str, friend: str):
         user.friends.append(new_friend)
         session.commit()
 
+# remove user's friend
+def remove_friend(username: str, friend: str):
+    with Session(engine) as session:
+        user = session.get(User, username)
+        if user:
+            friend_to_remove = session.query(User).filter_by(username=friend).first()
+            if friend_to_remove in user.friends:
+                user.friends.remove(friend_to_remove)
+                session.commit()
+                print(f"Friend '{friend}' removed successfully.")
+                return True
+            else:
+                print(f"User '{username}' is not friends with '{friend}'.")
+                return False
+        else:
+            print(f"User '{username}' not found.")
+            return False
+
 # gets user's list of friends's usernames
 def get_friends(username: str):
     with Session(engine) as session:
