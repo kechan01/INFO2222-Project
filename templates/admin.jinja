@@ -1,0 +1,23 @@
+{% extends 'base.jinja' %}
+
+{% block title %}
+Your Page Title
+{% endblock %}
+
+{% block content %}
+
+<div class="topnav">
+
+    <h1 style="text-align: center">Academic Platform for Students</h1>
+    <h2 style="text-align:left"> 
+    <a href="{{ url_for('forum', username=username) }}">Forum</a> 
+    <a href="{{ url_for('chat', username=username) }}">Messaging</a>
+    <a class="active" href="{{ url_for('friends', username=username) }}">Profile</a>
+    <a href="{{ url_for('logout') }}">Logout</a>
+    </h2>
+    <h2 style="text-align:right; color: white; padding-right: 20px;"> Username: {{ username }}  </h2>
+</div>
+
+
+<h2> Actions</h2> 
+<button> Manage Accounts </button><br>

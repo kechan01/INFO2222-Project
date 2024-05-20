@@ -22,7 +22,20 @@ Your Page Title
     <h2 class="picture">Profile picture</h2>
     <h2 style="text-align: center">{{ username }}</h2>
     <h2 style="text-align: center"> Account Type: {{ account_type }}</h2>
-    <h2 style="text-align: center"> <button style="background-color: darkgrey"> Administration </button> </h2> 
+
+    {% if account_type == "staff" or account_type == "admin" %}
+    <h2 style="text-align: center">Posting permissions:</h2>
+    <h2 style="text-align: center">
+        <button style="background-color: darkgrey" onclick="muteUser()">Mute User </button>
+        <button style="background-color: darkgrey" onclick="unmuteUser()">Unmute User</button>
+    </h2> 
+    <h2 style="text-align: center">Chating permissions:</h2>
+    <h2 style="text-align: center">
+        <button style="background-color: darkgrey" onclick="muteUserChat()">Mute User </button>
+        <button style="background-color: darkgrey" onclick="unmuteUserChat()">Unmute User</button>
+    </h2> 
+
+    {% endif %}
 </div>
 
 <!-- section for the article section --> 
@@ -160,8 +173,43 @@ Your Page Title
             location.reload();
             alert("Friend request from " + sender + " declined successfully!");
         }
+
+        // Function to handle muting a user
+        async function muteUser() {
+            let usernameToMute = prompt("Enter the username to mute:");
+            if (usernameToMute === null || usernameToMute === "") {
+                alert("Please enter a valid username.");
+                return;
+            }
+            let muteUserURL = "{{ url_for('mute_user') }}";
+            let res = await axios.post(muteUserURL, {
+                user: usernameToMute,
+            });
+            // Reload the page after accepting the request
+            location.reload();
+            alert("Muted user!");
+            
+        }
+
+        // Function to handle unmuting a user
+        async function unmuteUser() {
+            let usernameToMute = prompt("Enter the username to mute:");
+            if (usernameToMute === null || usernameToMute === "") {
+                alert("Please enter a valid username.");
+                return;
+            }
+            let muteUserURL = "{{ url_for('unmute_user') }}";
+            let res = await axios.post(muteUserURL, {
+                user: usernameToMute,
+            });
+            // Reload the page after accepting the request
+            location.reload();
+            alert("Unmuted user!");
+        }
+
     </script>
 </div> 
+
 
 
 

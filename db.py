@@ -460,16 +460,14 @@ def delete_article(article_id: int):
             print("An error occurred while deleting the article:", e)
             return False
 
-def edit_article(article_id: int, new_title: str, new_content: str, new_category: str):
+def edit_article(article_id: int, new_content: str):
     with Session(engine) as session:
         try:
             # Query the Article object to be edited
             article_to_edit = session.query(Article).filter_by(article_id=article_id).first()
             if article_to_edit:
                 # Update the article attributes
-                article_to_edit.title = new_title
                 article_to_edit.content = new_content
-                article_to_edit.category = new_category
                 session.commit()
                 print("Article edited successfully.")
                 return True
@@ -521,6 +519,16 @@ def get_articles_by_category(category: str):
             print("An error occurred while retrieving articles by category:", e)
             return None
 
+def get_all_articles():
+    with Session(engine) as session:
+        try:
+            # Query all articles
+            articles = session.query(Article).all()
+            return articles
+        except Exception as e:
+            print("An error occurred while retrieving all articles:", e)
+            return None
+
 def get_comments(article_id: int):
     with Session(engine) as session:
         try:
@@ -530,6 +538,37 @@ def get_comments(article_id: int):
         except Exception as e:
             print("An error occurred while retrieving comments:", e)
             return None
+        
+def get_all_comments():
+    with Session(engine) as session:
+        try:
+            # Query all comments
+            comments = session.query(Comment).all()
+            return comments
+        except Exception as e:
+            print("An error occurred while retrieving all comments:", e)
+            return None
+
+def add_comment(article_id: int, author_id: str, content: str):
+    with Session(engine) as session:
+        try:
+            # Check if the article exists
+            article = session.query(Article).filter_by(article_id=article_id).first()
+            if article:
+                # Create a new comment associated with the article
+                new_comment = Comment(article_id=article_id, author_id=author_id, content=content)
+                session.add(new_comment)
+                session.commit()
+                print("Comment added successfully.")
+                return True
+            else:
+                print("Article not found.")
+                return False
+        except Exception as e:
+            session.rollback()
+            print("An error occurred while adding the comment:", e)
+            return False
+
 
 def delete_comment(comment_id: int):
     with Session(engine) as session:
@@ -582,6 +621,47 @@ def get_user_role(username: str):
         except Exception as e:
             print("An error occurred while retrieving the user's role:", e)
             return None
+
+# Function to mute/unmute a user from posting
+def mute_user_post(username: str, mute_status: bool):
+    with Session(engine) as session:
+        try:
+            # Query the user object to be updated
+            user_to_update = session.query(User).filter_by(username=username).first()
+            if user_to_update:
+                # Update the user's mute status for posting
+                user_to_update.post = mute_status
+                print(user_to_update.post)
+                session.commit()
+                print(f"User '{username}' mute status for posting updated to '{mute_status}'.")
+                return True
+            else:
+                print("User not found.")
+                return False
+        except Exception as e:
+            session.rollback()
+            print("An error occurred while changing the user's mute status for posting:", e)
+            return False
+
+# Function to mute/unmute a user from chatting
+def mute_user_chat(username: str, mute_status: bool):
+    with Session(engine) as session:
+        try:
+            # Query the user object to be updated
+            user_to_update = session.query(User).filter_by(username=username).first()
+            if user_to_update:
+                # Update the user's mute status for chatting
+                user_to_update.chat = mute_status
+                session.commit()
+                print(f"User '{username}' mute status for chatting updated to '{mute_status}'.")
+                return True
+            else:
+                print("User not found.")
+                return False
+        except Exception as e:
+            session.rollback()
+            print("An error occurred while changing the user's mute status for chatting:", e)
+            return False
 
 # Register the set_all_users_offline function to be called when the script exits
 atexit.register(set_all_users_offline)

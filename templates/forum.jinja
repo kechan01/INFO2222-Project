@@ -37,6 +37,87 @@ Your Page Title
         background-color: #04AA6D;
         color: white;
     }
+
+    .article-box {
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 10px;
+        /* Add additional styling as needed */
+    }
+
+    .article {
+        /* Add styling for the article content */
+    }
+
+    .article-row:hover {
+        cursor: pointer;
+        background-color: #f0f0f0; /* Change background color on hover */
+    }
+
+    .article-details {
+        margin-bottom: 20px;
+        color: #666; /* Grey color for article details */
+    }
+
+    .article-details h2 {
+        margin-bottom: 5px;
+    }
+
+    .article-details p {
+        margin: 0;
+    }
+    .right-section .article-details {
+        color: #666; /* Grey color for article details */
+    }
+
+    /* New style for content font */
+    .article-content {
+        font-family: Arial, sans-serif; /* Change font to Arial or any sans-serif font */
+    }
+    
+    /* Style for delete button */
+    .delete-button {
+        background-color: #ff3333; /* Red background color */
+        color: white; /* White text color */
+        padding: 5px 10px; /* Padding for button */
+        border: none; /* Remove button border */
+        border-radius: 5px; /* Add border radius */
+        cursor: pointer; /* Change cursor to pointer on hover */
+    }
+
+    .button-container {
+    display: inline-block;
+    margin-right: 10px; /* Adjust the margin as needed */
+    }
+    
+    /* Updated styles for right section */
+    .right-section {
+        flex: 1; /* Make right section flexible */
+        padding: 20px; /* Add padding for spacing inside the section */
+        border: 1px solid #ccc; /* Add border for visualization */
+        box-sizing: border-box; /* Include padding and border in the width */
+        background-color: #f0f0f0; /* Grey background color */
+    }
+
+        /* Style for the comment section */
+    .comment-section {
+        margin-top: 20px;
+        border-top: 1px solid #ccc;
+        padding-top: 20px;
+    }
+
+    .comment-list {
+        list-style-type: none;
+        padding: 0;
+    }
+
+    .comment-item {
+        margin-bottom: 10px;
+    }
+
+
+
 </style> 
 
 <!-- top navigation bar -->
@@ -52,12 +133,193 @@ Your Page Title
     </h2>
 </div>
 
-<div id="searchbar"> 
 
-<br> 
-<button class="bt" onclick="window.location.href = '{{ url_for('create_article', username=username) }}';"> Create Article </button>
-<br>
-<button onclick="filter.jinja"> Filter article by category </button>
+<div class="container">
+    <div class="left-section">
+        {% if can_post %}
+        <div class="button-container">
+            <button class="bt" onclick="window.location.href = '{{ url_for('create_article', username=username) }}';">Create Article</button>
+        </div>
+        {% endif %}
+        
+    <div class="button-container">
+        <button id="filter-button" onclick="filterArticlesByCategory()">Filter articles by category</button>
+    </div>
+
+        <h2>Articles</h2>
+        <table>
+            <tbody>
+                <!-- Loop through articles and display details as rows -->
+                {% for article in articles %}
+                <tr class="article-row" onclick="showArticleDetails('{{ article.title }}', '{{ article.author_id }}', '{{ article.date_posted.strftime('%Y-%m-%d %H:%M:%S') }}', '{{ article.category }}', '{{ article.content }}')">
+                    <td style="color: blue;">{{ article.title }}</td>
+                    <td style="padding: 5px;"> By {{ article.author_id }} </td>
+                    <td style="padding: 5px;"> Date: {{ article.date_posted.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td class="article-category" style="padding: 5px;" >Tag: {{ article.category }}</td>
+                    {% if account_type == 'staff' or account_type == 'academic' or account_type == 'admin' or article.author_id == username %}
+                        <td>
+                            <button class="delete-button" onclick="deleteArticle('{{ article.article_id }}')">Delete</button>
+                            <button class="modify-button" onclick="modifyArticl e('{{ article.article_id }}', '{{ article.content }}')">Modify</button>
+                        </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="right-section">
+        <!-- Right section with article details and edit form -->
+        <div id="selected-article-details"></div>
+        <div id="edit-article-form" style="display: none;">
+            <h2>Edit Article</h2>
+            <form id="article-form" onsubmit="return submitModifiedArticle()">
+                <input type="hidden" id="article-id" name="articleId" value="">
+                <label for="edit-content">Content:</label><br>
+                <textarea id="edit-content" name="content" rows="5" cols="50"></textarea><br>
+                <input type="submit" value="Save Changes">
+                <button type="button" onclick="cancelEdit()">Cancel</button>
+
+            </form>
+        </div>
+        <div id="comments-section" style="display: none;">
+        <!-- Comments section -->
+        <h2>Comments</h2>
+        <ul id="comment-list">
+            <!-- Comments will be dynamically added here -->
+        </ul>
+        <!-- Form to add new comment -->
+        <form id="comment-form" onsubmit="return submitComment()">
+            <label for="comment">Add a comment:</label><br>
+            <textarea id="comment" name="comment" rows="2" cols="50"></textarea><br>
+            <input type="submit" value="Post Comment">
+        </form>
+    </div>
+
+    </div>
+
+
 </div>
+
+<script>
+    // Function to show article details and content
+    function showArticleDetails(title, author, datePosted, category, content) {
+        // Construct HTML for article details and content
+        var articleDetailsHTML = '<div id="article-details" class="article-details">';
+        articleDetailsHTML += '<h2><span style="color: blue;">' + title + '</span></h2>';
+        articleDetailsHTML += '<p><strong>Author:</strong> ' + author + '</p>';
+        articleDetailsHTML += '<p><strong>Date Posted:</strong> ' + datePosted + '</p>';
+        articleDetailsHTML += '<p><strong>Category:</strong> ' + category + '</p>';
+        articleDetailsHTML += '</div>';
+        articleDetailsHTML += '<div id="article-content" class="article-content">';
+        articleDetailsHTML += '<p>' + content + '</p>';
+        articleDetailsHTML += '</div>';
+        
+        
+        // Display article details and content
+        document.getElementById('selected-article-details').innerHTML = articleDetailsHTML;
+        document.getElementById('comments-section').style.display = 'block';
+
+        // Fetch comments for the selected article
+        let commentsURL = "/forum/comments?article_id=" + articleId;
+        let response = await fetch(commentsURL);
+        let comments = await response.json();
+
+        // Display comments
+        let commentList = document.getElementById('comment-list');
+        commentList.innerHTML = ''; // Clear existing comments
+        comments.forEach(function(comment) {
+            let commentItem = document.createElement('li');
+            commentItem.textContent = comment.content;
+            commentList.appendChild(commentItem);
+        });
+    }
+
+    // Function to handle modification of the article
+    function modifyArticle(articleId, content) {
+        // Show the edit form
+        document.getElementById('selected-article-details').style.display = 'none';
+        document.getElementById('edit-article-form').style.display = 'block';
+
+        // Populate the form fields with existing article content
+        document.getElementById('article-id').value = articleId;
+        populateEditForm(content);
+    }
+
+    function cancelEdit() {
+        // Show article details
+        document.getElementById('selected-article-details').style.display = 'block';
+        // Hide edit form
+        document.getElementById('edit-article-form').style.display = 'none';
+    }
+
+
+    // Function to populate form fields with existing article content
+    function populateEditForm(content) {
+        document.getElementById('edit-content').value = content;
+    }
+
+    // Function to handle form submission for modifying article
+    async function submitModifiedArticle() {
+        let articleId = document.getElementById('article-id').value;
+        let editedContent = document.getElementById('edit-content').value;
+        let updateArticleURL = "{{ url_for('update_article')}}";
+
+        let res = await axios.post(updateArticleURL, {
+            articleId: articleId,
+            content: editedContent
+        });
+
+        // Reload the page to reflect the changes
+        location.reload();
+
+        // Prevent the default form submission
+        return false;
+    }
+
+    async function deleteArticle(articleId) {
+        let deleteArticleURL = "{{ url_for('delete_article')}}";
+
+        let res = await axios.post(deleteArticleURL, {
+            articleId: articleId
+        });
+
+        location.reload();
+    }
+
+    // Function to handle form submission for submitting a comment
+    async function submitComment() {
+        let commentContent = document.getElementById('comment-content').value;
+        let submitCommentURL = "{{ url_for('submit_comment')}}";
+        let res = await axios.post(submitCommentURL, {
+            articleId: currentArticleId, // You need to define currentArticleId variable
+            content: commentContent
+        });
+
+        // Reload the page to reflect the changes
+        location.reload();
+
+        // Prevent the default form submission
+        return false;
+    }
+
+    // Function to filter articles by category
+    function filterArticlesByCategory() {
+        // Get the selected category
+        var actualSelected = prompt("Enter the category to filter by:");
+        var selectedCategory = ("Tag: " + actualSelected);
+        // Loop through articles and display only those that match the selected category
+        var articles = document.querySelectorAll('.article-row');
+        articles.forEach(function(article) {
+            var category = article.querySelector('.article-category').innerText;
+
+            if (category !== selectedCategory && selectedCategory !== 'all') {
+                article.style.display = 'none';
+            } else {
+                article.style.display = 'table-row';
+            }
+        });
+    }
+
+</script>
 
 {% endblock %}

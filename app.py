@@ -9,6 +9,8 @@ from flask_socketio import SocketIO
 import db
 import secrets
 import ssl
+from flask import jsonify
+
 
 import logging
  
@@ -201,15 +203,16 @@ def decline_friend_request():
 
 @app.route("/forum")
 def forum():
-    if request.args.get("username") is None:
-        abort(404)
-    
     if 'username' not in session:
         # Redirect to login if user is not authenticated
         return redirect(url_for('login'))
     username = session.get('username')  # Retrieve username from session
+    can_post = db.get_user(username).post
+    articles = db.get_all_articles()
+    account_type = db.get_user_role(username)
 
-    return render_template("forum.jinja", username=username)
+    return render_template("forum.jinja", username=username, can_post=can_post,
+                           articles=articles, account_type=account_type)
 
 @app.route("/forum/create")
 def create_article():
@@ -235,7 +238,55 @@ def post_article():
     db.add_article(username, article_name, content, category)
 
     return redirect(url_for('forum', username=username))
-    
+
+@app.route("/forum/delete", methods=["POST"])
+def delete_article():
+    username = session.get('username')  # Retrieve username from session
+    article_id = request.json.get("articleId")
+    db.delete_article(article_id)
+    return url_for('forum', username=username)
+
+@app.route("/forum/update", methods=["POST"])
+def update_article():
+    username = session.get('username')  # Retrieve username from session
+    article_id = request.json.get("articleId")
+    new_content = request.json.get("content")
+    db.edit_article(article_id, new_content)
+
+    return url_for('forum')
+
+@app.route("/forum/submit")
+def submit_comment():
+    username = session.get('username')  # Retrieve username from session
+    article_id = request.json.get("articleId")
+    content = request.json.get("content")
+
+    db.add_comment(article_id, username, content)
+    return url_for('forum')
+
+@app.route("/forum/comments")
+def get_article_comments():
+
+    article_id = request.args.get("article_id")
+    if article_id is None:
+        return jsonify({"error": "Article ID is required"}), 400
+
+    # Assuming db.get_comments returns a list of comments for the given article ID
+    comments = db.get_comments(article_id)
+
+    return jsonify(comments)
+
+@app.route("/friends/mute", methods=["POST"])
+def mute_user():
+    user = request.json.get("user")
+    db.mute_user_post(user, False)
+    return url_for('friends')
+
+@app.route("/friends/unmute", methods=["POST"])
+def unmute_user():
+    user = request.json.get("user")
+    db.mute_user_post(user, True)
+    return url_for('friends')
 
 
 @app.route('/heartbeat')

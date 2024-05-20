@@ -30,6 +30,7 @@ association_table = Table('association', Base.metadata,
 class UserRole(Enum):
     STUDENT = "student"
     STAFF = "staff"
+    ACADEMIC = "academic"
     ADMIN = "admin"
 
 # model to store user information
