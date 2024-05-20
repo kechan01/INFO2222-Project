@@ -35,6 +35,8 @@
 
 </div>
 
+{% if can_chat %}
+
 <main>
     <div class="container">
         <div class="left-section">
@@ -95,6 +97,10 @@
     </div>
 
 </main>
+{% else %}
+   <!-- Display message when user cannot chat -->
+   <p>You have been muted from chatting!</p>
+{% endif %}
 
 <script src="/static/js/libs/socket.io.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.js"></script>
@@ -131,8 +137,8 @@
         // we'll display the message box, instead of the "Chat with: " box
         $("#chat_box").hide();
         $("#group_chat_box").hide();
-
-        if (sessionStorage.getItem("group") == false){
+        
+        if (sessionStorage.getItem("group") === "false"){
             $("#input_box").show();
         } else {
             $("#group_input").show();
@@ -196,10 +202,9 @@
     });
 
     socket.on("connected", (room_id) => {
-        if (sessionStorage.getItem("group") == false) {
+        if (localStorage.getItem("group") == "false") {
             displayMessageHistory(room_id);
         } else {
-            console.log("HEREEE");
             displayMessageHistoryNE(room_id);
         }
         
@@ -283,6 +288,7 @@
 
     // we'll send the message to the server by emitting a "send" event
     function send() {
+        console.log("sending private messages");
         // ask the server for the receiver's public key to send secret key if shared key not established
         if (sessionStorage.getItem("sharedKey") == null) {
             socket.emit("ask_receiver_public_key", room_id);
@@ -314,6 +320,8 @@
         console.log("Message Encryption key exists!");
         const encryptedMessage = encryptData(userAndMessage, sessionStorage.getItem("messageHistoryKey"));
         socket.emit("store_encrypted_message", room_id, encryptedMessage);  
+        localStorage.setItem("group", false);
+
     } 
 
     function send_group() {
@@ -322,10 +330,12 @@
         socket.emit("send", username, message, room_id);  
         const userAndMessage = username + ": " + message;
         socket.emit("store_encrypted_message", room_id, userAndMessage);  
+        localStorage.setItem("group", true);
     } 
 
     // we emit a join room event to the server to join a room
     function join_room() {        
+        console.log("Joining private room");
         sessionStorage.removeItem("sharedKey");
         sessionStorage.removeItem("secretKey");
 
@@ -397,7 +407,7 @@
                 });
 
             }
-            sessionStorage.setItem("group", false);
+            localStorage.setItem("group", false);
             displayMessageHistory(room_id);
         })
     }
@@ -424,7 +434,8 @@
             $("#group_chat_box").hide();
             $("#group_input").show();
         })
-        sessionStorage.setItem("group", true);
+        localStorage.setItem("group", true);
+
     }
 
     function joinGroupChat() {
@@ -447,7 +458,8 @@
             $("#chat_box").hide();
             $("#group_chat_box").hide();
             $("#group_input").show();
-            sessionStorage.setItem("group", true);
+            localStorage.setItem("group", true);
+
             displayMessageHistoryNE(room_id);
         })
     }
@@ -465,7 +477,7 @@
     }
 
     function displayMessageHistoryNE(roomId) {
-        console.log("Displaying message history!");
+        console.log("Displaying group message history!");
         socket.emit('get_encrypted_messages', roomId, (encrypted_messages) => {
             // Once message history is received from the server, display it in the UI
             encrypted_messages.forEach((message) => {
@@ -541,6 +553,7 @@
         Cookies.remove("room_id");
         sessionStorage.removeItem("sharedKey");
         sessionStorage.removeItem("secretKey");
+        localStorage.removeItem("group");
         socket.emit("leave", username, room_id);
         $("#input_box").hide();
         $("#group_input").hide();

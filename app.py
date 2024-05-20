@@ -115,10 +115,13 @@ def chat():
 
         # get all group chat rooms available 
         user_chats = db.get_user_chatrooms(username)
+        
+        can_chat = db.get_user(username).chat        
 
         # Here you can perform any additional logic you need, such as checking if the friend exists, etc.
         return render_template("chat.jinja", username=username, friends=friends, 
-                               chats=chats, user_chats=user_chats)
+                               chats=chats, user_chats=user_chats,
+                               can_chat=can_chat)
 
 @app.route("/friends")
 def friends():
@@ -133,9 +136,15 @@ def friends():
         friends = db.get_friends(username)
         requests = db.get_requests(username)
         account_type = db.get_user_role(username)
+        
+        online = []
+        for f in friends:
+            online.append(db.get_online_status(f))
 
-        return render_template("profile.jinja", username=username, friends=friends, 
-                               requests=requests, account_type=account_type)
+        return render_template("profile.jinja", username=username, 
+                               friends=friends, 
+                               requests=requests, account_type=account_type, 
+                               online=online)
 
 
 @app.route("/friends/add", methods=["POST"])
@@ -192,7 +201,42 @@ def decline_friend_request():
 
 @app.route("/forum")
 def forum():
-    return render_template("forum.jinja")
+    if request.args.get("username") is None:
+        abort(404)
+    
+    if 'username' not in session:
+        # Redirect to login if user is not authenticated
+        return redirect(url_for('login'))
+    username = session.get('username')  # Retrieve username from session
+
+    return render_template("forum.jinja", username=username)
+
+@app.route("/forum/create")
+def create_article():
+    if request.args.get("username") is None:
+        abort(404)
+    
+    if 'username' not in session:
+        # Redirect to login if user is not authenticated
+        return redirect(url_for('login'))
+    
+    username = session.get('username')  # Retrieve username from session
+    return render_template("createArticle.jinja", username=username)
+
+@app.route("/forum/post", methods=["POST"])
+def post_article():
+    username = session.get('username')  # Retrieve username from session
+
+    # Retrieve the article data from the request
+    article_name = request.form.get("fname")
+    content = request.form.get("content")
+    category = request.form.get("lname")
+
+    db.add_article(username, article_name, content, category)
+
+    return redirect(url_for('forum', username=username))
+    
+
 
 @app.route('/heartbeat')
 def heartbeat():

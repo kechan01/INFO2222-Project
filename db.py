@@ -521,7 +521,6 @@ def get_articles_by_category(category: str):
             print("An error occurred while retrieving articles by category:", e)
             return None
 
-
 def get_comments(article_id: int):
     with Session(engine) as session:
         try:

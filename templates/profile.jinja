@@ -40,7 +40,7 @@ Your Page Title
     <script>
     let list = document.getElementById('list');
     let friends = {{ friends | tojson }};
-
+    let online = {{ online | tojson }};
     // Append the button to the list item
     for (let i = 0; i < friends.length; i++) {
         let li = document.createElement('li');
@@ -50,6 +50,11 @@ Your Page Title
         let span = document.createElement('span');
         span.textContent = friends[i];
         li.appendChild(span);
+
+        // Add online status
+        let onlineSpan = document.createElement('span');
+        onlineSpan.textContent = online[i] ? 'Online' : 'Offline';
+        li.appendChild(onlineSpan);
 
         // Create the remove button
         let removeButton = document.createElement('button');

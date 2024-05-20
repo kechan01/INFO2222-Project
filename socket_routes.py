@@ -74,7 +74,6 @@ def disconnect():
 def send(username, message, room_id):
     emit("incoming", (f"{username}: {message}"), to=room_id)
     user = db.get_participants(room_id)
-    print(user)
     # checking online status
     online_count = 0
     receiver = None
@@ -113,7 +112,8 @@ def join(sender_name, receiver_name):
             print("Error: cannot create a room")
             return
         room_id = db.find_exclusive_room(sender_name, receiver_name)
-    
+    join_room(room_id)
+
     # emit to everyone in the room except the sender
     emit("warnings", (f"{sender_name} has joined the room.", "green"), to=room_id, include_self=False)
      # emit only to the sender

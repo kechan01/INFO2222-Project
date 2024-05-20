@@ -37,6 +37,16 @@ Your Page Title
         background-color: #04AA6D;
         color: white;
     }
+    .bt{ 
+        margin-left: 1000px ; 
+        background-color: #333; 
+        color: white; 
+        padding: 6px 8px;
+    }
+    input{ 
+        background-color: darkgrey;
+        color: white;
+    }
 </style> 
 
 <!-- top navigation bar -->
@@ -50,14 +60,22 @@ Your Page Title
     <a href="{{ url_for('friends', username=username) }}">Profile</a>
     <a href="{{ url_for('logout') }}">Logout</a>
     </h2>
+
 </div>
 
-<div id="searchbar"> 
-
 <br> 
-<button class="bt" onclick="window.location.href = '{{ url_for('create_article', username=username) }}';"> Create Article </button>
-<br>
-<button onclick="filter.jinja"> Filter article by category </button>
+
+<div style="text-align: center;">
+<form action="{{ url_for('post_article', username=username) }}" method="post" style="display: inline-block; text-align: left;">
+  <label for="fname">Name of the Article</label><br>
+  <input type="text" id="fname" name="fname" placeholder="enter the name" size="50"><br><br>
+  <label for="lname">Content</label><br>
+  <textarea id="content" name="content" placeholder="Enter the content" rows="10" cols="50"></textarea><br><br>
+  <label for="lname">Category</label><br>
+  <input type="text" id="lname" name="lname" placeholder="type here" size="50"><br>
+  <br> 
+  <button type="submit">POST</button> 
+</form>
 </div>
 
 {% endblock %}
