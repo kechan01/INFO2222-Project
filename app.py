@@ -182,4 +182,4 @@ def heartbeat():
 if __name__ == '__main__':
     if db.get_user("admin") == None:
         db.create_admin_user()
-    socketio.run(app, host='127.0.0.1', port=5000, ssl_context=ssl_context)
+    socketio.run(app, host='127.0.0.1', port=5000)

@@ -43,6 +43,10 @@ Your Page Title
         color: white; 
         padding: 6px 8px;
     }
+    input{ 
+        background-color: darkgrey;
+        color: white;
+    }
 </style> 
 
 <!-- top navigation bar -->
@@ -59,14 +63,13 @@ Your Page Title
 
 </div>
 
-<div id="searchbar"> 
-
-<br> 
-<input type="text" placeholder="Search article by name"> 
-<br> 
-<button class="bt" onclick="createArticle"> Create Article </button>
-<br>
-<button onclick="filter.jinja"> Filter article by category </button>
-</div>
-
-{% endblock %}
+<form>
+  <label for="fname">Name of the Article</label><br>
+  <input type="text" id="fname" name="fname" value="enter the name"><br>
+  <label for="lname">CONTENT</label><br>
+  <input type="text" id="lname" name="lname" value="type here">
+  <label for="lname">CATEGORY</label><br>
+  <input type="text" id="lname" name="lname" value="type here">
+  <br> 
+  <button onclick="">POST</button> 
+</form>
