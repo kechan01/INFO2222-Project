@@ -19,7 +19,6 @@ Your Page Title
 </div>
 <!--  <div class="row"> --> 
 <div id="left">
-    <h2 class="picture">Profile picture</h2>
     <h2 style="text-align: center">{{ username }}</h2>
     <h2 style="text-align: center"> Account Type: {{ account_type }}</h2>
 
@@ -34,6 +33,13 @@ Your Page Title
         <button style="background-color: darkgrey" onclick="muteUserChat()">Mute User </button>
         <button style="background-color: darkgrey" onclick="unmuteUserChat()">Unmute User</button>
     </h2> 
+    <h2 style="text-align: center">Changing account type:</h2>
+    <h2 style="text-align: center">
+        <button style="background-color: darkgrey" onclick="student()">Student</button>
+        <button style="background-color: darkgrey" onclick="academic()">Academic</button>
+        <button style="background-color: darkgrey" onclick="staff()">Administrative</button>
+    </h2> 
+
 
     {% endif %}
 </div>
@@ -239,6 +245,53 @@ Your Page Title
             location.reload();
             alert("Unmuted user!");
         }
+
+        async function student() {
+            let usernameToMute = prompt("Enter the username to change to student account:");
+            if (usernameToMute === null || usernameToMute === "") {
+                alert("Please enter a valid username.");
+                return;
+            }
+            let muteUserURL = "{{ url_for('student_account') }}";
+            let res = await axios.post(muteUserURL, {
+                user: usernameToMute,
+            });
+            // Reload the page after accepting the request
+            location.reload();
+            alert("Changed user account to student!");
+        }
+
+        async function academic() {
+            let usernameToMute = prompt("Enter the username to change to academic account:");
+            if (usernameToMute === null || usernameToMute === "") {
+                alert("Please enter a valid username.");
+                return;
+            }
+            let muteUserURL = "{{ url_for('academic_account') }}";
+            let res = await axios.post(muteUserURL, {
+                user: usernameToMute,
+            });
+            // Reload the page after accepting the request
+            location.reload();
+            alert("Changed user account to academic!");
+        }
+
+        async function staff() {
+            let usernameToMute = prompt("Enter the username to change to administrative account:");
+            if (usernameToMute === null || usernameToMute === "") {
+                alert("Please enter a valid username.");
+                return;
+            }
+            let muteUserURL = "{{ url_for('staff_account') }}";
+            let res = await axios.post(muteUserURL, {
+                user: usernameToMute,
+            });
+            // Reload the page after accepting the request
+            location.reload();
+            alert("Changed user account to staff!");
+        }
+
+
 
     </script>
 </div> 

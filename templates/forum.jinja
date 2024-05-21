@@ -201,6 +201,7 @@ Your Page Title
 </div>
 
 <script>
+    var currentArticleId = null;
     // Function to show article details and content
     async function showArticleDetails(articleId, title, author, datePosted, category, content) {
         // Construct HTML for article details and content
@@ -219,20 +220,42 @@ Your Page Title
         document.getElementById('selected-article-details').innerHTML = articleDetailsHTML;
         document.getElementById('comments-section').style.display = 'block';
 
+        currentArticleId = articleId;
         // Fetch comments for the selected article
-        let commentsURL = "/forum/comments?article_id=" + articleId;
+        let commentsURL = "{{ url_for('get_article_comments') }}" + "?article_id=" + articleId;
         let response = await fetch(commentsURL);
-        let comments = await response.json();
+        let commentsData = await response.json();
 
-        // Display comments
         let commentList = document.getElementById('comment-list');
         commentList.innerHTML = ''; // Clear existing comments
-        comments.forEach(function(comment) {
+
+        commentsData.forEach(function(comment) {
             let commentItem = document.createElement('li');
-            commentItem.textContent = comment.content;
+            let commentContent = document.createElement('div');
+
+            // Format the comment content
+            commentContent.innerHTML = `
+                <p><strong>Author:</strong> ${comment.author_id} <strong>Date Posted:</strong> ${comment.date_posted}</p>
+                <p>${comment.content}</p>
+            `;
+            
+            var accountType = "{{ account_type }}";
+            // Append delete button if user is staff, academic, or admin
+            if (accountType === 'staff' || accountType === 'academic' || accountType === 'admin') {
+                let deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.classList.add('delete-button');
+                deleteButton.onclick = function() {
+                    window.location.href = "{{ url_for('delete_comment') }}?comment_id=" + comment.comment_id;
+                };
+                commentContent.appendChild(deleteButton);
+            }
+            commentItem.appendChild(commentContent);
             commentList.appendChild(commentItem);
         });
     }
+
+
 
     // Function to handle modification of the article
     function modifyArticle(articleId, content) {
@@ -288,15 +311,12 @@ Your Page Title
 
     // Function to handle form submission for submitting a comment
     async function submitComment() {
-        let commentContent = document.getElementById('comment-content').value;
+        let commentContent = document.getElementById('comment').value;
         let submitCommentURL = "{{ url_for('submit_comment')}}";
         let res = await axios.post(submitCommentURL, {
-            articleId: currentArticleId, // You need to define currentArticleId variable
+            articleId: currentArticleId,
             content: commentContent
         });
-
-        // Reload the page to reflect the changes
-        location.reload();
 
         // Prevent the default form submission
         return false;

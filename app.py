@@ -10,6 +10,7 @@ import db
 import secrets
 import ssl
 from flask import jsonify
+import json
 
 
 import logging
@@ -39,7 +40,7 @@ import socket_routes
 # index page
 @app.route("/")
 def index():
-    return render_template("index.jinja")
+    return render_template("login.jinja")
 
 # login page
 @app.route("/login")
@@ -255,12 +256,11 @@ def update_article():
 
     return url_for('forum')
 
-@app.route("/forum/submit")
+@app.route("/forum/submit", methods=["POST"])
 def submit_comment():
     username = session.get('username')  # Retrieve username from session
     article_id = request.json.get("articleId")
     content = request.json.get("content")
-
     db.add_comment(article_id, username, content)
     return url_for('forum')
 
@@ -274,7 +274,27 @@ def get_article_comments():
     # Assuming db.get_comments returns a list of comments for the given article ID
     comments = db.get_comments(article_id)
 
-    return jsonify(comments)
+    comments_data = []
+    for comment in comments:
+        comment_dict = {
+            'comment_id': comment.comment_id,
+            'author_id': comment.author_id,
+            'date_posted': comment.date_posted.strftime('%Y-%m-%d %H:%M:%S'),  # Assuming date_posted is a datetime object
+            'content': comment.content
+        }
+        if comment_dict:
+            comments_data.append(comment_dict)
+
+    comments_json = json.dumps(comments_data)
+
+    return comments_json
+
+@app.route("/forum/commentdelete")
+def delete_comment():
+    comment_id = request.args.get("comment_id")
+    print(comment_id)
+    db.delete_comment(comment_id)
+    return redirect(url_for('forum'))
 
 @app.route("/friends/mute", methods=["POST"])
 def mute_user():
@@ -298,6 +318,26 @@ def mute_user_chat():
 def unmute_user_chat():
     user = request.json.get("user")
     db.mute_user_chat(user, True)
+    return url_for('friends')
+
+@app.route("/friends/student", methods=["POST"])
+def student_account():
+    user = request.json.get("user")
+    db.change_user_role(user, "student")
+    return url_for('friends')
+
+
+@app.route("/friends/academic", methods=["POST"])
+def academic_account():
+    user = request.json.get("user")
+    db.change_user_role(user, "academic")
+    return url_for('friends')
+
+
+@app.route("/friends/staff", methods=["POST"])
+def staff_account():
+    user = request.json.get("user")
+    db.change_user_role(user, "staff")
     return url_for('friends')
 
 

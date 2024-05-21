@@ -5,12 +5,80 @@
 {% extends 'base.jinja' %}
 
 {% block content %} 
-    <h1>Login</h1>
-    <p>Username</p>
-    <input id="username"/>
-    <p>Password</p>
-    <input id="password"  type="password"/>
-    <button onclick="login()">Login</button>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .login-container {
+            text-align: center;
+            margin-top: -100px;
+        }
+
+        .input-container {
+            margin-bottom: 10px;
+        }
+
+        .input-container input {
+            border-radius: 5px;
+            padding: 8px;
+            width: 200px;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .login-button {
+            background-color: #04AA6D;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 12px 30px;
+            cursor: pointer;
+            font-family: 'Arial', sans-serif;
+            margin-right: 10px;
+        }
+
+        .signup-button {
+            background-color: white;
+            color: black; /* Set text color to black for better visibility */
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        h1 {
+            font-size: 36px;
+        }
+
+        p {
+            font-size: 18px;
+        }
+
+    </style>
+
+    <div class="login-container">
+        <h1>Welcome to UsydHelp!</h1>
+        <p>Academic Platform for Students</p>
+        <h2>Log in</h2>
+
+        <div class="input-container">
+            <input type="text" id="username" placeholder="Username">
+        </div>
+        
+        <div class="input-container">
+            <input type="password" id="password" placeholder="Password">
+        </div>
+
+        <button class="login-button" onclick="login()">Login</button>
+        <a href={{ url_for('signup') }} class="signup-button">Sign Up</a>
+    </div>
+
     
     <!-- CryptoJS library for hashing password -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
